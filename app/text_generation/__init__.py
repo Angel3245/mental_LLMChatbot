@@ -1,1 +1,2 @@
-from .model_training import GPT2FineTuner
+from .model_training import ChatbotTrainer
+from .text_generation import Chatbot

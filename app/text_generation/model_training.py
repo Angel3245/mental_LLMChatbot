@@ -1,6 +1,7 @@
-import json
 import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments
+from sklearn.model_selection import train_test_split
+from dataset import ChatbotDataset
 
 import logging
 logging.basicConfig(
@@ -9,62 +10,76 @@ logging.basicConfig(
         level=logging.INFO
     )
 
-class GPT2FineTuner:
-    def __init__(self, model_name_or_path, cache_dir='./cache'):
-        self.tokenizer = GPT2Tokenizer.from_pretrained(model_name_or_path, cache_dir=cache_dir)
-        self.model = GPT2LMHeadModel.from_pretrained(model_name_or_path, cache_dir=cache_dir)
-        self.cache_dir = cache_dir
+class ChatbotTrainer:
+    def __init__(self, model_name):
+        self.model = GPT2LMHeadModel.from_pretrained(model_name)
+        self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        self.tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+        self.tokenizer.padding_side = "left"
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+
+    def split_train_val_sets(self, df):
+        """ Generate train, test and validation sets from dataframe 
         
-    def load_dataset(self, dataset_path):
-        self.dataset = TextDataset(
-            tokenizer=self.tokenizer,
-            file_path=dataset_path,
-            block_size=512,
-        )
-        
-    def fine_tune(self, output_dir='./output', num_train_epochs=3, per_device_train_batch_size=16, learning_rate=1e-4):
+        :param df: dataframe
+        :return: train, test, val sets
+        """
+        train, val = train_test_split(df, test_size=0.1)
+        return train, val
+    
+    def train(self, dataset, output_dir, epochs=3, batch_size=4, lr=5e-5):
+        train_dataframe, val_dataframe = self.split_train_val_sets(dataset)
+
+        train_dataset = ChatbotDataset(train_dataframe, self.tokenizer)
+        val_dataset = ChatbotDataset(val_dataframe, self.tokenizer)
+
         training_args = TrainingArguments(
-            output_dir=output_dir,
-            num_train_epochs=num_train_epochs,
-            per_device_train_batch_size=per_device_train_batch_size,
-            save_total_limit=2,
-            save_steps=1000,
-            prediction_loss_only=True,
-            logging_steps=5000,
-            logging_first_step=True,
-            learning_rate=learning_rate,
-            overwrite_output_dir=True
+            output_dir=output_dir,          # output directory
+            num_train_epochs=epochs,         # total number of training epochs
+            per_device_train_batch_size=batch_size,  # batch size per device during training
+            per_device_eval_batch_size=batch_size,   # batch size for evaluation
+            learning_rate=lr,               # learning rate
+            warmup_steps=0,                 # number of warmup steps for learning rate scheduler
+            weight_decay=0.01,              # strength of weight decay
+            logging_dir='./logs',            # directory for storing logs
+            logging_steps=10,
+            save_steps=5000,
+            evaluation_strategy='steps',
+            eval_steps=5000,
+            load_best_model_at_end=True,
         )
-        data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
+
         trainer = Trainer(
             model=self.model,
             args=training_args,
-            data_collator=data_collator,
-            train_dataset=self.dataset
+            train_dataset=train_dataset,
+            eval_dataset=val_dataset,
+            data_collator=lambda data: {'input_ids': torch.stack([item['input_ids'] for item in data]),
+                                        'attention_mask': torch.stack([item['attention_mask'] for item in data]),
+                                        'labels': torch.stack([item['labels'] for item in data])},
         )
+
         trainer.train()
-        
-    def generate_text(self, prompt="", max_length=100):
-        input_ids = self.tokenizer.encode(prompt, return_tensors='pt').to(self.model.device)
-        output = self.model.generate(input_ids=input_ids, max_length=max_length)
-        return self.tokenizer.decode(output[0], skip_special_tokens=True)
-    
-    def evaluate(self, eval_dataset_path, per_device_eval_batch_size=16):
-        self.model.eval()
-        eval_dataset = TextDataset(eval_dataset_path, self.tokenizer)
-        eval_dataloader = torch.utils.data.DataLoader(
-            eval_dataset, 
-            batch_size=per_device_eval_batch_size, 
-            num_workers=4
+
+        # Save the trained model
+        self.model.save_pretrained(output_dir)
+
+    def generate_response(self, input_text, max_length=30, top_p=0.9):
+        input_encodings = self.tokenizer(input_text, truncation=True, padding='max_length', max_length=512, return_tensors='pt')
+        input_ids = input_encodings['input_ids'].to(self.model.device)
+        attention_mask = input_encodings['attention_mask'].to(self.model.device)
+
+        # Use model.generate() to generate the response
+        response = self.model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_length=max_length,
+            top_p=top_p,
+            do_sample=True,
         )
-        eval_loss = 0.0
-        eval_steps = 0
-        for inputs, labels in eval_dataloader:
-            inputs = inputs.to(self.model.device)
-            labels = labels.to(self.model.device)
-            with torch.no_grad():
-                outputs = self.model(inputs, labels=labels)
-                loss = outputs[0]
-                eval_loss += loss.item()
-                eval_steps += 1
-        return eval_loss / eval_steps
+
+        # Decode the response from the model back into text
+        response_text = self.tokenizer.decode(response[0], skip_special_tokens=True)
+
+        return response_text

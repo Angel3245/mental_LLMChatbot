@@ -1,5 +1,3 @@
-from transformers import AutoModelForMaskedLM
+import torch
 
-
-pytorch_lm = AutoModelForMaskedLM.from_pretrained('mnaylor/psychbert-cased', from_flax=True)
-pytorch_lm.save_pretrained("./")
+print(torch.cuda.is_available())

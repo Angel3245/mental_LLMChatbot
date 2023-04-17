@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
-from faq.Mental_Health_FAQ import *
-from view import *
+from text_generation import Chatbot
+from preprocessing import preprocess
 
 if __name__ == "__main__":
 
@@ -15,28 +15,25 @@ if __name__ == "__main__":
 
     path = Path.cwd()
 
-    if args.option == "retrieve_answer":
-        # python app\chatbot.py -o retrieve_answer -t "What is a mental illness?"
-        top_k = 3
-        dataset = 'MentalKnowledge'
-        model = 'publichealthsurveillance/PHS-BERT'
-        fields = ['question_answer']
-        model_path = dataset+"/models/"+model
+    if args.option == "ask":
+        # python app\chatbot.py -o ask
 
-        index_name = "mentalknowledge"
+        # Cargar el modelo previamente entrenado desde el disco duro
+        model_path = F"{str(path)}/output/MentalKnowledge"
+        chatbot = Chatbot(model_path)
 
-        # Define model parameters
-        loss_type = 'softmax'; neg_type = 'simple'; query_type = 'faq'
-
-        # Input text
-        text = args.text
-
-        print(ranker(top_k, model_path, fields, index_name, loss_type, neg_type, query_type, text))
+        # Hacer preguntas al chatbot y mostrar las respuestas
+        while True:
+            user_input = "User: "+input("Usuario: ")
+            if user_input.lower() == 'salir':
+                break
+            response = chatbot.generate_response(preprocess(user_input))
+            print(f"Chatbot: {response}")
 
     if args.option == "gui":
         # python app\chatbot.py -o gui
         dataset = F"{str(path)}/file/datasets/Reddit_posts.csv"
 
-        ask_sentence(dataset)
+        #ask_sentence(dataset)
 
     print("PROGRAM FINISHED")

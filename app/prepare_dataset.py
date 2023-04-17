@@ -1,7 +1,7 @@
 import argparse
+import json
 from pathlib import Path
 from shared import *
-from model import *
 from transformation import *
 
 if __name__ == "__main__":
@@ -36,6 +36,24 @@ if __name__ == "__main__":
             # Dump data to json file
             make_dirs(output_path)
             dump_to_json(qa_mentalfaq+qa_reddit, output_path+'/input_label_pairs.json', sort_keys=False)
+        else:
+            print("Dataset not selected")
+
+    if args.option == "prepare_data":
+        # python app\prepare_dataset.py -o prepare_data -d MentalKnowledge
+        if(args.dataset):
+            data_path = F"{str(path)}/file/data/"+args.dataset
+
+            with open(data_path+'/input_label_pairs.json', "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            with open(data_path+'/conversation.txt', "w", encoding="utf-8") as f:
+                for item in data:
+                    input_text = item["input_text"]
+                    label_text = item["label_text"]
+                    f.write("Prompt: {}\n".format(input_text))
+                    f.write("ChatBot: {}\n".format(label_text))
+                    f.write("\n")
         else:
             print("Dataset not selected")
 

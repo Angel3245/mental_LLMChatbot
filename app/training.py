@@ -1,8 +1,6 @@
 import argparse
 from pathlib import Path
-from DB.connect import database_connect
 from shared import *
-from model import *
 from text_generation import *
 from transformation import *
 import pandas as pd
@@ -28,16 +26,18 @@ if __name__ == "__main__":
     if args.option == "finetune_model":
         # python app\training.py -o finetune_model -m GPT2
         dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
+        dataset = load_from_json(dataset_filepath)
+
         output_path = F"{str(path)}/output/MentalKnowledge"
         model_name = args.model
 
         if(model_name == "GPT2"):
-            model = GPT2FineTuner("gpt2")
+            model = ChatbotTrainer("gpt2")
         else:
             raise ValueError('model' + model_name + 'not exist')
 
-        model.load_dataset(dataset_filepath)
-        model.fine_tune(output_path)
+        model.train(dataset, output_path)
+        print(model.generate_response("What does it mean to have a mental illness?"))
 
     # Finetune model
     if args.option == "model_training":
