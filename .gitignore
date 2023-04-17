@@ -141,6 +141,5 @@ dmypy.json
 /app/faq/BERT-FAQ/output
 /output
 *rank_results
-*dataset
 *hard_negatives_faq.json
 *hard_negatives_user_query.json

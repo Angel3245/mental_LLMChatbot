@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
         # Hacer preguntas al chatbot y mostrar las respuestas
         while True:
-            user_input = "User: "+input("Usuario: ")
+            user_input = input("Usuario: ")
             if user_input.lower() == 'salir':
                 break
             response = chatbot.generate_response(preprocess(user_input))

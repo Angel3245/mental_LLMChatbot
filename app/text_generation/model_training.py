@@ -1,7 +1,7 @@
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments
 from sklearn.model_selection import train_test_split
-from dataset import ChatbotDataset
+from train_dataset import ChatbotDataset
 
 import logging
 logging.basicConfig(
