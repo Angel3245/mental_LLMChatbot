@@ -24,20 +24,20 @@ if __name__ == "__main__":
     path = Path.cwd()
 
     if args.option == "finetune_model":
-        # python app\training.py -o finetune_model -m GPT2
+        # python app\training.py -o finetune_model -m gpt2
         dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
         dataset = load_from_json(dataset_filepath)
 
-        output_path = F"{str(path)}/output/MentalKnowledge"
         model_name = args.model
+        output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
 
-        if(model_name == "GPT2"):
-            model = ChatbotTrainer("gpt2")
+        if(model_name in ["gpt2","llama", "bloom", "alpaca"]):
+            model = ChatbotTrainer(model_name)
         else:
-            raise ValueError('model' + model_name + 'not exist')
+            raise ValueError('model ' + model_name + ' not exist')
 
         model.train(dataset, output_path)
-        print(model.generate_response("What does it mean to have a mental illness?"))
+        print(model.generate_response("where can i find self help materials for anxiety"))
 
     # Finetune model
     if args.option == "model_training":

@@ -7,8 +7,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
-    parser.add_argument("-m", "--model", type=str, help="select a model", default='distilbert-base-uncased')
-    parser.add_argument("-d", "--dataset", type=str, help="select a dataset", default="MentalFAQ")
+    parser.add_argument("-m", "--model", type=str, help="select a model", default='gpt2')
+    parser.add_argument("-d", "--dataset", type=str, help="select a dataset", default="MentalKnowledge")
     parser.add_argument("-f", "--file", type=str, help="select a file")
     parser.add_argument("-t", "--text", type=str, help="introduce a mental health related text")
     args = parser.parse_args()
@@ -16,11 +16,13 @@ if __name__ == "__main__":
     path = Path.cwd()
 
     if args.option == "ask":
-        # python app\chatbot.py -o ask
+        # python app\chatbot.py -o ask -m bloom
 
+        model_name = args.model
         # Cargar el modelo previamente entrenado desde el disco duro
-        model_path = F"{str(path)}/output/MentalKnowledge"
-        chatbot = Chatbot(model_path)
+        model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
+        chatbot = Chatbot(model_name, model_path)
+        #chatbot = Chatbot("gpt2")
 
         # Hacer preguntas al chatbot y mostrar las respuestas
         while True:
