@@ -31,7 +31,7 @@ if __name__ == "__main__":
         model_name = args.model
         output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
 
-        if(model_name in ["gpt2","llama", "bloom", "alpaca"]):
+        if(model_name in MODEL_CLASSES):
             model = ChatbotTrainer(model_name)
         else:
             raise ValueError('model ' + model_name + ' not exist')
@@ -39,30 +39,10 @@ if __name__ == "__main__":
         model.train(dataset, output_path)
         print(model.generate_response("where can i find self help materials for anxiety"))
 
-    # Finetune model
-    if args.option == "model_training":
-        # python app\training.py -o model_training -d MentalKnowledge -m GPT-2 -e 2 -b 32 -lr 3e-05 -neg simple -loss softmax
-        model_name = args.model
-        epoch_value = args.epochs
-        batch_value = args.batch_size
-        lr_value = args.learning_rate
-        neg_type = args.neg_type
-        loss_type = args.loss_type
-    
-        if(args.dataset == "MentalKnowledge"):
-            data_path = F"{str(path)}/file/data/MentalKnowledge"
-            output_path = F"{str(path)}/output/MentalKnowledge"
-
-        else:
-            raise ValueError("Dataset not selected")
-
-        model_output_path = output_path+"_"+model_name
-
-        model_training(data_path,model_output_path,model_name,neg_type,loss_type, epochs=epoch_value,batch_size=batch_value,learning_rate=lr_value)
-
-    # Create CSV with results
-    if args.option == "get_finetune_results":
-        # python app\training.py -o get_finetune_results -d MentalKnowledge -m GPT-2
+    # Create CSV with results from several hyperparameter configurations
+    '''
+    if args.option == "hyperparameter_tuning":
+        # python app\training.py -o hyperparameter_tuning -d MentalKnowledge -m gpt2
         batch_sizes = [16, 32]
         learning_rate = [5e-5, 3e-5, 2e-5]
         adam_epsilons = [1e-8]
@@ -92,7 +72,7 @@ if __name__ == "__main__":
         make_dirs(output_path+"/evaluation_results")
         df_triplet.to_csv(output_path+"/evaluation_results/triplet_results.csv")
         df_softmax.to_csv(output_path+"/evaluation_results/softmax_results.csv")
-
+    '''
 
 
     ###
