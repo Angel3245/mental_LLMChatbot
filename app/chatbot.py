@@ -16,7 +16,7 @@ if __name__ == "__main__":
     path = Path.cwd()
 
     if args.option == "ask":
-        # python app\chatbot.py -o ask -m bloom
+        # python app\chatbot.py -o ask -m gpt2
 
         model_name = args.model
         # Cargar el modelo previamente entrenado desde el disco duro

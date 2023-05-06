@@ -43,19 +43,21 @@ class ChatbotTrainer:
         train_dataset = ChatbotDataset(train_dataframe, self.tokenizer)
         val_dataset = ChatbotDataset(val_dataframe, self.tokenizer)
 
+        warmup_steps = int(len(train_dataset)*epochs/batch_size*0.1) #10% of train data
+        
         training_args = TrainingArguments(
             output_dir=output_dir,          # output directory
             num_train_epochs=epochs,         # total number of training epochs
             per_device_train_batch_size=batch_size,  # batch size per device during training
             per_device_eval_batch_size=batch_size,   # batch size for evaluation
             learning_rate=lr,               # learning rate
-            #warmup_steps=500,                 # number of warmup steps for learning rate scheduler
+            warmup_steps=warmup_steps,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs
             logging_steps=10,
-            save_steps=500,                  # after # steps model is saved
+            #save_steps=1000,                  # after # steps model is saved
             evaluation_strategy='steps',
-            eval_steps=100,                  # Number of update steps between two evaluations.
+            eval_steps=1000,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             load_best_model_at_end=True,
@@ -89,12 +91,12 @@ class ChatbotTrainer:
             rouge2 = np.mean([score['rouge2'].fmeasure for score in rouge_scores])
             rougeL = np.mean([score['rougeL'].fmeasure for score in rouge_scores])
 
-            return {"eval_bleu": bleu, 'rouge1': rouge1, 'rouge2': rouge2, 'rougeL': rougeL}
+            return {"eval_bleu": bleu["bleu"], 'rouge1': rouge1, 'rouge2': rouge2, 'rougeL': rougeL}
         
         trainer = Trainer(
             model=self.model,
             args=training_args,
-            #compute_metrics=compute_metrics,
+            compute_metrics=compute_metrics,
             train_dataset=train_dataset,
             eval_dataset=val_dataset
         )
@@ -113,7 +115,7 @@ class ChatbotTrainer:
 
 
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
-        # Set prompt
+        # Set prompt: <bos> input <sep>
         input_text = self.tokenizer.bos_token + input_text + self.tokenizer.sep_token
 
         input_encodings = self.tokenizer(input_text, truncation=True, padding='max_length', max_length=512, return_tensors='pt')

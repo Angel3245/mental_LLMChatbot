@@ -27,12 +27,18 @@ def preprocess(sentence):
     sentence = sentence.lower()
     sentence=sentence.replace('{html}',"")
     sentence=re.sub("[\(\[<].*?[\)\]>]", "", sentence)
-    rem_url=re.sub(r'http\S+', '',sentence)
-    rem_num = re.sub('[0-9]+', '', rem_url)
+    sentence=re.sub(r'http\S+', '',sentence)
+    sentence = re.sub('[0-9]+', '', sentence)
+    sentence = re.sub('\u200b', ' ', sentence)
+    sentence = re.sub('\xa0', ' ', sentence)
+    sentence = re.sub('\n', ' ', sentence)
+    sentence = re.sub('\r', ' ', sentence)
+    sentence = re.sub('-', ' ', sentence)
     rx = re.compile(r'([^\W\d_])\1{2,}')
-    rem_num = re.sub(r'[^\W\d_]+', lambda x: Word(rx.sub(r'\1\1', x.group())).correct() if rx.search(x.group()) else x.group(), rem_num)
+    sentence = re.sub(r'[^\W\d_]+', lambda x: Word(rx.sub(r'\1\1', x.group())).correct() if rx.search(x.group()) else x.group(), sentence)
+
     tokenizer = RegexpTokenizer(r'\w+')
-    tokens = tokenizer.tokenize(rem_num)
+    tokens = tokenizer.tokenize(sentence)
 
     return " ".join(tokens)
 
