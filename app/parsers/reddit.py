@@ -21,17 +21,16 @@ class Reddit_Parser(object):
             flairs = ["DAE Questions", "Question", ":snoo_thoughtful: help? :snoo_biblethump:",
               ":orly: Help please!", "DAE?"]
 
-            # select question, answer columns
-            df = df[['input_text', 'label_text','link_flair_text']]
+            # select prompt, answer columns
+            df = df[['prompt', 'answer','link_flair_text']]
 
             for _, row in df.iterrows():
                 # Check is a valid flair
                 if row['link_flair_text'] in flairs:
                     data = dict()
-                    data["label"] = 1
                     data["query_type"] = "faq"
-                    data["input_text"] = row["input_text"]
-                    data["label_text"] = row["label_text"]
+                    data["prompt"] = row["prompt"]
+                    data["completion"] = row["answer"]
                     qa_pairs.append(data)
 
         elif query_type == "support":
@@ -39,17 +38,16 @@ class Reddit_Parser(object):
                 "Advice Needed", "Support", "Seeking Support", "PROVIDING SUPPORT", "REQUESTING SUPPORT",
                 "PROVIDING ADVICE", "REQUESTING ADVICE"]
             
-            # select query_string, answer columns
-            df = df[['input_text', 'label_text','link_flair_text']]
+            # select prompt, answer columns
+            df = df[['prompt', 'answer','link_flair_text']]
 
             for _, row in df.iterrows():
                 # Check is a valid flair
                 if row['link_flair_text'] in flairs:
                     data = dict()
-                    data["label"] = 1
                     data["query_type"] = "support"
-                    data["input_text"] = row["input_text"]
-                    data["label_text"] = row["label_text"]
+                    data["prompt"] = row["prompt"]
+                    data["completion"] = row["answer"]
                     qa_pairs.append(data)
         else:
             raise ValueError('error, no query_type found for {}'.format(query_type))

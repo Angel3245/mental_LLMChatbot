@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset
 
-class GPT2Dataset(Dataset):
+class LlamaDataset(Dataset):
     def __init__(self, dataframe, tokenizer):
         self.data = dataframe
         self.tokenizer = tokenizer
@@ -14,7 +14,7 @@ class GPT2Dataset(Dataset):
         label_text = str(self.data[idx]['completion'])
 
         # Add special tokens to input and label text
-        text = self.tokenizer.bos_token + input_text + self.tokenizer.sep_token + label_text + self.tokenizer.eos_token
+        text = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n" + input_text + "\n\n### Response:\n" + label_text
 
         # Tokenize input and label text
         input_encodings = self.tokenizer(text, truncation=True, padding='max_length', max_length=512)

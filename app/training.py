@@ -1,7 +1,9 @@
 import argparse
 from pathlib import Path
 from shared import *
-from text_generation import *
+from text_generation.gpt2 import *
+from text_generation.peft import *
+#from text_generation.petals import *
 from transformation import *
 import pandas as pd
 from transformers import GPT2Tokenizer
@@ -31,13 +33,17 @@ if __name__ == "__main__":
         model_name = args.model
         output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
 
-        if(model_name in MODEL_CLASSES):
-            model = ChatbotTrainer(model_name)
+        if(model_name == "gpt2"):
+            model = GPT2Trainer(model_name)
+        elif(model_name == "petals"):
+            model = PetalsTrainer("bigscience/bloom-7b1-petals")
+        elif(model_name == "peft"):
+            model = PeftTrainer("decapoda-research/llama-7b-hf")
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
         model.train(dataset, output_path)
-        print(model.generate_response("where can i find self help materials for anxiety"))
+        print(model.generate_response("Where can I find self help materials for anxiety?"))
 
     # Create CSV with results from several hyperparameter configurations
     '''

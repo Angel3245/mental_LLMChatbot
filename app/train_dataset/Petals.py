@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset
 
-class GPT2Dataset(Dataset):
+class PetalsDataset(Dataset):
     def __init__(self, dataframe, tokenizer):
         self.data = dataframe
         self.tokenizer = tokenizer
@@ -14,14 +14,17 @@ class GPT2Dataset(Dataset):
         label_text = str(self.data[idx]['completion'])
 
         # Add special tokens to input and label text
-        text = self.tokenizer.bos_token + input_text + self.tokenizer.sep_token + label_text + self.tokenizer.eos_token
+        text = "User: " + input_text + "\nBot: " + label_text + "\n"
+
+        # Using with open()
+        with open('log.txt', 'a') as f:
+            print(text, file=f)
 
         # Tokenize input and label text
-        input_encodings = self.tokenizer(text, truncation=True, padding='max_length', max_length=512)
+        input_encodings = self.tokenizer(text, truncation=True, padding='max_length')
 
         return {
             'input_ids': torch.tensor(input_encodings['input_ids']),
-            'attention_mask': torch.tensor(input_encodings['attention_mask']),
             'labels': torch.tensor(input_encodings['input_ids']),
         }
 

@@ -19,10 +19,9 @@ class MentalFAQ_Parser(object):
 
             for _, row in df.iterrows():
                 data = dict()
-                data["label"] = 1
                 data["query_type"] = "faq"
-                data["input_text"] = row["input_text"]
-                data["label_text"] = row["label_text"]
+                data["prompt"] = row["input_text"]
+                data["completion"] = row["label_text"]
                 qa_pairs.append(data)
 
         elif query_type == "user_query":
@@ -31,10 +30,9 @@ class MentalFAQ_Parser(object):
 
             for _, row in df.iterrows():
                 data = dict()
-                data["label"] = 1
                 data["query_type"] = "user_query"
-                data["input_text"] = row["input_text"]
-                data["label_text"] = row["label_text"]
+                data["prompt"] = row["input_text"]
+                data["completion"] = row["label_text"]
                 qa_pairs.append(data)
         else:
             raise ValueError('error, no query_type found for {}'.format(query_type))

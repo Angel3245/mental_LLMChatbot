@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
-from text_generation import Chatbot
+from text_generation.gpt2 import GPT2Chatbot
+from text_generation.peft import PeftChatbot
+from text_generation.petals import PetalsChatbot
 from preprocessing import preprocess
 
 if __name__ == "__main__":
@@ -21,7 +23,16 @@ if __name__ == "__main__":
         model_name = args.model
         # Cargar el modelo previamente entrenado desde el disco duro
         model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
-        chatbot = Chatbot(model_name, model_path)
+
+        if(model_name == "gpt2"):
+            chatbot = GPT2Chatbot(model_name, model_path)
+        elif(model_name == "petals"):
+            chatbot = PetalsChatbot(model_path)
+        elif(model_name == "peft"):
+            chatbot = PeftChatbot(model_path,"decapoda-research/llama-7b-hf")
+        else:
+            raise ValueError('model ' + model_name + ' not exist')
+        
         #chatbot = Chatbot("gpt2")
 
         # Hacer preguntas al chatbot y mostrar las respuestas

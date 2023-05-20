@@ -12,29 +12,11 @@ def filter_irrelevant_posts(posts_df):
                 "PROVIDING ADVICE", "REQUESTING ADVICE"]
     posts_df = posts_df.apply(lambda row: row[posts_df['link_flair_text'].isin(flairs)])
 
-    # create a new title_length column that contains the number of words per title:
-    posts_df["title_length"] = posts_df.apply(
-        lambda x: len(x["title"].split()), axis=1
-    )
-    # remove short posts
-    posts_df = posts_df[posts_df['title_length'] > 4]
-
     return posts_df
 
 def filter_irrelevant_comments(comments_df):
-    # create a new comments_length column that contains the number of words per comment:
-    comments_df["comment_length"] = comments_df.apply(
-        lambda x: len(x["body"].split()), axis=1
-    )
-
-    # filter out short comments, which typically include things “Thanks!” that are not relevant for our search engine.
-    comments_df = comments_df[comments_df["comment_length"] > 10]
-
-    # remove answers with low scores
+    # remove comments with low scores
     comments_df = comments_df[comments_df['score'] > 3]
-
-    # get answer with best score
-    comments_df = comments_df.sort_values('score', ascending=False).drop_duplicates(['parent_id'])
 
     return comments_df
 
@@ -49,11 +31,11 @@ def parse_redditposts_textgeneration(posts_path, comments_path):
 
     #filter posts columns
     columns = posts_df.columns
-    columns_to_keep = ["title", "score", "name", "link_flair_text"]
+    columns_to_keep = ["title", "body", "score", "name", "link_flair_text"]
     columns_to_remove = set(columns_to_keep).symmetric_difference(columns)
     posts_df = posts_df.drop(columns_to_remove, axis=1)
-    # rename colnames score: post_score
-    posts_df = posts_df.rename(columns={'score': 'post_score'})
+    # rename colnames score: post_score, body: post_body 
+    posts_df = posts_df.rename(columns={'score': 'post_score','body': 'post_body'})
 
     # filter comments columns
     columns = comments_df.columns
@@ -68,15 +50,20 @@ def parse_redditposts_textgeneration(posts_path, comments_path):
     # join both dataframes
     df = posts_df.merge(comments_df,left_on='name', right_on='parent_id')
 
-    # rename title column to input_text
-    df = df.rename(columns={'title': 'input_text'})
+    # create prompt column Using + operator to combine title and body columns
 
-    # rename colname body: label_text
-    df = df.rename(columns={'body': 'label_text'})
+    # Remove final dot of title if exists
+    df['title'] = df['title'].str.replace(r'.$', '')
+
+    # Combine prompt
+    df["prompt"] = df['title'].astype(str) + " - "+ df["post_body"]
+
+    # rename colname body to answer
+    df = df.rename(columns={'body': 'answer'})
 
     # clean text
-    df['input_text']=df['input_text'].map(lambda s:preprocess(s)) 
-    df['label_text']=df['label_text'].map(lambda s:clean(s))
+    df['prompt']=df['prompt'].map(lambda s:clean(s)) 
+    df['answer']=df['answer'].map(lambda s:clean(s))
 
     # create instance of Reddit_Parser and generate input_label_pairs
     reddit_parser = Reddit_Parser()

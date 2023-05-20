@@ -13,7 +13,7 @@ def parse_mentalfaq(file_path):
     df.dropna(inplace=True)
 
     # clean text
-    df['input_text']=df['input_text'].map(lambda s:preprocess(s))
+    df['input_text']=df['input_text'].map(lambda s:clean(s))
 
     # create instance of MentalFAQ_Parser and generate query_answer_pairs
     mentalfaq_parser = MentalFAQ_Parser()

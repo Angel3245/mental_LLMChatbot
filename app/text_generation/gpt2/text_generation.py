@@ -3,7 +3,7 @@ from shared.model_classes import MODEL_CLASSES
 from transformers import GenerationConfig
 
 
-class Chatbot:
+class GPT2Chatbot:
     def __init__(self, model_name, model_path):
         self.model_path = model_path
         model_class, tokenizer_class, model_name_or_path = MODEL_CLASSES[model_name]
