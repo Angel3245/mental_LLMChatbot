@@ -17,22 +17,10 @@ if __name__ == "__main__":
 
     path = Path.cwd()
 
-
-    if args.option == "insert_csv":
-        # python app\preprocessing.py -o insert_csv -f <<csv_name>> -db <<database_name>>
-        # Example: python app\preprocessing.py -o insert_csv -f Mental_Health_FAQ.csv -db tfgdb
-        route_csv = F"{str(path)}/file/datasets/"+args.file
-
-        df = pd.read_csv(route_csv)
-
-        # insert data
-        session = database_connect(args.database)
-        session.add(df.values.tolist())
-
     # Create csv from data in DB
-    if args.option == "create_csv_reddit":
-        # python app\preprocessing.py -o create_csv_reddit -db <<database_name>>
-        # Example: python app\preprocessing.py -o create_csv_reddit -db reddit
+    if args.option == "create_csv_from_DB":
+        # python app\database_scripts.py -o create_csv_from_DB -db <<database_name>>
+        # Example: python app\database_scripts.py -o create_csv_reddit -db reddit
         session = database_connect(args.database)
 
         outfile = open(F"{str(path)}/file/datasets/Reddit_posts.csv", 'w', encoding='utf-8')
@@ -60,16 +48,5 @@ if __name__ == "__main__":
                              item.stickied, item.ups, item.permalink, item.parent_id])
 
         outfile.close()
-
-    # Insert previously parsed data into a DB. It needs a connection to a DB (ElasticSearch)
-    if args.option == "ingest_db":
-        # python app\question_answering.py -o ingest_db -d MentalFAQ
-        if(args.dataset == "MentalKnowledge"):
-            data_path = F"{str(path)}/file/data/MentalFAQ"
-
-            ingest_data_to_db(data_path, "mentalfaq")
-
-        else:
-            print("Dataset not selected")
 
     print("PROGRAM FINISHED")

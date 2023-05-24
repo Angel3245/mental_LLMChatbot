@@ -17,8 +17,8 @@ class PetalsDataset(Dataset):
         text = "User: " + input_text + "\nBot: " + label_text + "\n"
 
         # Using with open()
-        with open('log.txt', 'a') as f:
-            print(text, file=f)
+        #with open('log.txt', 'a') as f:
+        #    print(text, file=f)
 
         # Tokenize input and label text
         input_encodings = self.tokenizer(text, truncation=True, padding='max_length')

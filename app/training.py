@@ -3,10 +3,11 @@ from pathlib import Path
 from shared import *
 from text_generation.gpt2 import *
 from text_generation.peft import *
-#from text_generation.petals import *
+from text_generation.petals import *
 from transformation import *
 import pandas as pd
 from transformers import GPT2Tokenizer
+import random
 
 if __name__ == "__main__":
 
@@ -29,6 +30,8 @@ if __name__ == "__main__":
         # python app\training.py -o finetune_model -m gpt2
         dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
         dataset = load_from_json(dataset_filepath)
+
+        #dataset = random.sample(list(dataset), 30)
 
         model_name = args.model
         output_path = F"{str(path)}/output/MentalKnowledge/"+model_name

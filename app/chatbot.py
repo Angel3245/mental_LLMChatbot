@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from text_generation.gpt2 import GPT2Chatbot
 from text_generation.peft import PeftChatbot
-from text_generation.petals import PetalsChatbot
+#from text_generation.petals import PetalsChatbot
 from preprocessing import preprocess
 
 if __name__ == "__main__":
@@ -40,7 +40,7 @@ if __name__ == "__main__":
             user_input = input("Usuario: ")
             if user_input.lower() == 'salir':
                 break
-            response = chatbot.generate_response(preprocess(user_input))
+            response = chatbot.generate_response(user_input)
             print(f"Chatbot: {response}")
 
     if args.option == "gui":

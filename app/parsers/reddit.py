@@ -61,10 +61,10 @@ class Reddit_Parser(object):
         return pairs
 
     def get_input_label_pairs(self, faq_pairs, support_pairs):
-        """ Generate query answer pair list using faq, user query pairs 
+        """ Generate query answer pair list using faq, support pairs 
         
         :param faq_pairs: faq pairs
-        :param user_query_pairs: user query pairs
+        :param support_pairs: support pairs
         :return: query answer pairs
         """
         query_answer_pairs = faq_pairs + support_pairs

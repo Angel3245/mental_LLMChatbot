@@ -1,7 +1,10 @@
 import torch
 import numpy as np
 import evaluate
-from transformers import Trainer, TrainingArguments
+from tqdm import tqdm
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
+from transformers import Trainer, TrainingArguments, get_scheduler
 from sklearn.model_selection import train_test_split
 from rouge_score import rouge_scorer
 from train_dataset import PetalsDataset
@@ -18,12 +21,12 @@ logging.basicConfig(
 
 class PetalsTrainer:
     def __init__(self, model_name="bigscience/bloom-petals"):
-        self.model = DistributedBloomForCausalLM.from_pretrained(model_name, tuning_mode="ptune", pre_seq_len=16)
+        self.model = DistributedBloomForCausalLM.from_pretrained(model_name, tuning_mode="ptune", pre_seq_len=16).to("cuda")
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_name)
         self.tokenizer.model_max_length = 256
 
-        self.tokenizer.padding_side = "left" # Allow batched inference
+        self.tokenizer.padding_side = "right" # Allow batched inference
 
     def split_train_val_sets(self, df):
         """ Generate train, test and validation sets from dataframe 
@@ -35,6 +38,7 @@ class PetalsTrainer:
         return train, val
     
     def train(self, dataset, output_dir, epochs=1, batch_size=8, lr=1e-2):
+        """
         train_dataframe, val_dataframe = self.split_train_val_sets(dataset)
 
         train_dataset = PetalsDataset(train_dataframe, self.tokenizer)
@@ -110,15 +114,53 @@ class PetalsTrainer:
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
+        """
+        train_dataset = PetalsDataset(dataset, self.tokenizer)
+
+        train_dataloader = DataLoader(
+            train_dataset,
+            shuffle=True,
+            batch_size=batch_size,
+            drop_last=True,
+        )
+        
+        for n, p in self.model.named_parameters():
+            if p.requires_grad:
+                print(n, p.requires_grad, p.device)
+
+        optimizer = AdamW(self.model.parameters(), lr=lr, weight_decay=0.0)
+
+        lr_scheduler = get_scheduler(
+            name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=len(train_dataloader)
+        )
+
+        for batch in tqdm(train_dataloader):
+            batch = {k: v.to(self.model.device) for k, v in batch.items()}
+
+            self.model.train()
+            outputs = self.model(**batch)
+            loss = outputs.loss
+            loss.backward()
+
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
+
+            print(loss)
+
+        # Save the model and tokenizer
+        self.model.save_pretrained(output_dir)
+        self.tokenizer.save_pretrained(output_dir)
     
     def generate_response(self, input_text, max_length=1000, temperature=0.6, top_k=100):
-        # Set prompt: <bos> input <sep>
-        input_ids = self.tokenizer(f"User:{input_text}\nBot:", return_tensors='pt')['input_ids'].to(self.model.device)
-
-        response_text = ""
-
-        # Use model.generate() to generate the response
+        
         with self.model.inference_session(max_length=512) as sess:
+            # Set prompt
+            input_ids = self.tokenizer(f"User: {input_text}\nBot:", return_tensors='pt')['input_ids'].to(self.model.device)
+
+            response_text = ""
+
+            # Use model.generate() to generate the response
             while True:
                 outputs = self.model.generate(
                     input_ids,
@@ -136,4 +178,4 @@ class PetalsTrainer:
 
                 input_ids = None
 
-        return response_text
+            return response_text
