@@ -4,8 +4,7 @@ import evaluate
 from transformers import Trainer, TrainingArguments
 from sklearn.model_selection import train_test_split
 from rouge_score import rouge_scorer
-from train_dataset import GPT2Dataset
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForSeq2Seq
+from transformers import BloomTokenizerFast, BloomForCausalLM, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
 
 import logging
@@ -15,12 +14,12 @@ logging.basicConfig(
         level=logging.INFO
     )
 
-class GPT2Trainer:
+class BloomTrainer:
     def __init__(self, model_name_or_path):
         self.model_name_or_path = model_name_or_path
 
-        self.model = GPT2LMHeadModel.from_pretrained(model_name_or_path)
-        self.tokenizer = GPT2Tokenizer.from_pretrained(model_name_or_path)
+        self.model = BloomForCausalLM.from_pretrained(model_name_or_path)
+        self.tokenizer = BloomTokenizerFast.from_pretrained(model_name_or_path)
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -29,7 +28,7 @@ class GPT2Trainer:
 
         self.cutoff_len = 512
 
-        self.prompter = Prompter("chatbot_simple")
+        self.prompter = Prompter("mentalbot")
 
     def split_train_val_sets(self, df, val_set_size=200):
         """ Generate train, test and validation sets from dataframe 
@@ -72,8 +71,8 @@ class GPT2Trainer:
         return result
  
     def generate_and_tokenize_prompt(self,data_point):
-        # Set prompt: <bos> input <eos>
-        full_prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(data_point["prompt"],None,data_point["completion"]) + self.tokenizer.eos_token
+        # Set prompt
+        full_prompt = self.prompter.generate_prompt(data_point["prompt"],None,data_point["completion"])
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
     
@@ -144,7 +143,7 @@ class GPT2Trainer:
         )
 
         train_result = trainer.train()
-        #print(trainer.evaluate())
+        print(trainer.evaluate())
         #trainer.save_model()  # Saves the tokenizer too for easy upload
 
         # Save the model and tokenizer
@@ -180,7 +179,7 @@ class GPT2Trainer:
         )
         
         def model_init():
-            return GPT2LMHeadModel.from_pretrained(self.model_name_or_path)
+            return BloomForCausalLM.from_pretrained(self.model_name_or_path)
         
         trainer = Trainer(
             model_init=model_init,
@@ -206,8 +205,8 @@ class GPT2Trainer:
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
         self.model = self.model.eval()
 
-        # Set prompt: <bos> input
-        prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(input_text)
+        # Set prompt
+        prompt = self.prompter.generate_prompt(input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)

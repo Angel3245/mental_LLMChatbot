@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from text_generation.gpt2 import GPT2Chatbot
+from text_generation.bloom import BloomChatbot
 from text_generation.peft import PeftChatbot
 #from text_generation.petals import PetalsChatbot
 from preprocessing import preprocess
@@ -25,7 +26,9 @@ if __name__ == "__main__":
         model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
 
         if(model_name == "gpt2"):
-            chatbot = GPT2Chatbot(model_name, model_path)
+            chatbot = GPT2Chatbot(model_path)
+        elif(model_name == "bloom"):
+            chatbot = BloomChatbot(model_path)
         elif(model_name == "petals"):
             chatbot = PetalsChatbot(model_path)
         elif(model_name == "peft"):

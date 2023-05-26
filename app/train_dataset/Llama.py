@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset
+from shared.prompter import Prompter
 
 class LlamaDataset(Dataset):
     def __init__(self, dataframe, tokenizer):
@@ -13,8 +14,13 @@ class LlamaDataset(Dataset):
         input_text = str(self.data[idx]['prompt'])
         label_text = str(self.data[idx]['completion'])
 
-        # Add special tokens to input and label text
-        text = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n" + input_text + "\n\n### Response:\n" + label_text
+        prompter = Prompter("alpaca")
+
+        # Generate prompt from template
+        text = prompter.generate_prompt("Answer as a mental health expert.",input_text,label_text)
+
+        # Add stop token
+        text += self.tokenizer.eos_token
 
         # Tokenize input and label text
         input_encodings = self.tokenizer(text, truncation=True, padding='max_length', max_length=512)

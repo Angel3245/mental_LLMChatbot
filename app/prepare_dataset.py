@@ -57,22 +57,6 @@ if __name__ == "__main__":
         else:
             print("Dataset not selected")
 
-    # Recompute ids after manually editing dataset
-    if args.option == "recompute_ids":
-        # python app\prepare_dataset.py -o recompute_ids -d MentalFAQ
-        if(args.dataset == "MentalFAQ"):
-            dataset_path = F"{str(path)}/file/data/MentalFAQ/query_answer_pairs.json"
-        else:
-            print("Dataset not selected")
-        
-        data = load_from_json(dataset_path)
-        id = 1
-
-        for item in data:
-            item.update({"id": str(id)})
-            id += 1
-
-        dump_to_json(data, dataset_path, sort_keys=False)
 
     # Change query_type of all pairs
     if args.option == "change_query_type":

@@ -1,5 +1,4 @@
 import torch
-from shared.model_classes import MODEL_CLASSES
 from transformers import GenerationConfig, BloomTokenizerFast
 
 from petals import DistributedBloomForCausalLM

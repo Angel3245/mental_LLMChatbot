@@ -1,15 +1,13 @@
 import argparse
 from pathlib import Path
 from shared import *
-from text_generation.gpt2 import GPT2Trainer
-from text_generation.bloom import BloomTrainer
-from text_generation.peft import PeftTrainer
-#from text_generation.petals import PetalsTrainer
+from text_generation.gpt2 import *
+from text_generation.peft import *
+#from text_generation.petals import *
 from transformation import *
 import pandas as pd
 from transformers import GPT2Tokenizer
 import random
-from datasets import load_dataset
 
 if __name__ == "__main__":
 
@@ -28,21 +26,20 @@ if __name__ == "__main__":
 
     path = Path.cwd()
 
-    if args.option == "finetune_model":
-        # python app\training.py -o finetune_model -m gpt2
-        dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
-        dataset = load_dataset("json", data_files=dataset_filepath)
-        print("Train dataset:",dataset["train"])
+    if args.option == "evaluate":
+        # python app\evaluate.py -o evaluate -m gpt2
+        test_filepath = F"{str(path)}/file/test/test_inputs.txt"
+
+        with open(test_filepath, "r") as test_file:
+            test_inputs = test_file.readlines()
 
         #dataset = random.sample(list(dataset), 30)
 
         model_name = args.model
-        output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
+        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_name
 
         if(model_name == "gpt2"):
             model = GPT2Trainer(model_name)
-        elif(model_name == "bloom"):
-            model = BloomTrainer("bigscience/bloom-560m")
         elif(model_name == "petals"):
             model = PetalsTrainer("bigscience/bloom-7b1-petals")
         elif(model_name == "peft"):
@@ -50,32 +47,9 @@ if __name__ == "__main__":
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
-        model.train(dataset, output_path)
-        print(model.generate_response("Where can I find self help materials for anxiety?"))
+        model.evaluation(test_inputs, output_path)
 
-    if args.option == "hyperparameter_search":
-        # python app\training.py -o hyperparameter_search -m gpt2
-        dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
-        dataset = load_dataset("json", data_files=dataset_filepath)
-        print("Train dataset:",dataset["train"])
-
-        #dataset = random.sample(list(dataset), 30)
-
-        model_name = args.model
-        output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
-
-        if(model_name == "gpt2"):
-            model = GPT2Trainer(model_name)
-        elif(model_name == "bloom"):
-            model = BloomTrainer("bigscience/bloom-560m")
-        elif(model_name == "petals"):
-            model = PetalsTrainer("bigscience/bloom-7b1-petals")
-        elif(model_name == "peft"):
-            model = PeftTrainer("decapoda-research/llama-7b-hf")
-        else:
-            raise ValueError('model ' + model_name + ' not exist')
-
-        model.hyperparameter_search(dataset)
+        print("Evaluation results dumped to",output_path)
 
     # Create CSV with results from several hyperparameter configurations
     '''

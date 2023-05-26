@@ -1,6 +1,8 @@
 import torch
+import sys
 from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer
 from peft import PeftModel
+from shared.prompter import Prompter
 
 class PeftChatbot:
     def __init__(self, model_path, model_name="decapoda-research/llama-7b-hf"):
@@ -21,13 +23,17 @@ class PeftChatbot:
         self.model.config.bos_token_id = 1
         self.model.config.eos_token_id = 2
 
-        self.model.eval()
-        #self.model = torch.compile(self.model)
+        self.prompter = Prompter("alpaca")
+
+        self.model = self.model.eval()
+        
+        if torch.__version__ >= "2" and sys.platform != "win32":
+            self.model = torch.compile(self.model)
 
     def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=4, repetition_penalty=1.1):
 
         # Set prompt
-        prompt = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n" + input_text + "\n\n### Response:\n"
+        prompt = self.prompter.generate_prompt("Answer as a mental health expert.",input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)
@@ -35,8 +41,8 @@ class PeftChatbot:
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
-            top_k=top_k,
-            num_beams=num_beams,
+            #top_k=top_k,
+            #num_beams=num_beams,
             repetition_penalty=repetition_penalty
         )
         
@@ -47,12 +53,11 @@ class PeftChatbot:
                 generation_config=generation_config,
                 return_dict_in_generate=True,
                 output_scores=True,
-                #do_sample=True,
                 max_new_tokens=max_new_tokens,
             )
 
         # Decode the response from the model back into text
         decoded_output = self.tokenizer.decode(response.sequences[0])
-        response = decoded_output.split("### Response:")[1].strip()
+        response = self.prompter.get_response(decoded_output)
 
         return response

@@ -51,12 +51,8 @@ def parse_redditposts_textgeneration(posts_path, comments_path):
     df = posts_df.merge(comments_df,left_on='name', right_on='parent_id')
 
     # create prompt column Using + operator to combine title and body columns
-
-    # Remove final dot of title if exists
-    df['title'] = df['title'].str.replace(r'.$', '')
-
     # Combine prompt
-    df["prompt"] = df['title'].astype(str) + " - "+ df["post_body"]
+    df["prompt"] = df['title'].astype(str) + " " + df["post_body"]
 
     # rename colname body to answer
     df = df.rename(columns={'body': 'answer'})

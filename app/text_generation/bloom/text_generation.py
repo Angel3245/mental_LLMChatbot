@@ -1,21 +1,21 @@
 import torch
 from transformers import GenerationConfig
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import BloomTokenizerFast, BloomForCausalLM
 from shared.prompter import Prompter
 
-class GPT2Chatbot:
+class BloomChatbot:
     def __init__(self, model_path):
         self.model_path = model_path
 
         self.cutoff_len = 512
 
-        self.prompter = Prompter("chatbot_simple")
+        self.prompter = Prompter("mentalbot")
 
-        self.tokenizer = GPT2Tokenizer.from_pretrained(model_path)
+        self.tokenizer = BloomTokenizerFast.from_pretrained(model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "left" # Allow batched inference
 
-        self.model = GPT2LMHeadModel.from_pretrained(model_path)
+        self.model = BloomForCausalLM.from_pretrained(model_path)
         self.model.config.pad_token_id = self.model.config.eos_token_id
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -25,11 +25,8 @@ class GPT2Chatbot:
         self.model.eval()
 
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
-    
-        self.model = self.model.eval()
-
-        # Set prompt: <bos> input
-        prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(input_text)
+        # Set prompt
+        prompt = self.prompter.generate_prompt(input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)

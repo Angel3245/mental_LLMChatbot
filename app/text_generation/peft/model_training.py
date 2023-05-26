@@ -1,11 +1,14 @@
 import torch
-import os, sys
+import os, sys, csv
 import numpy as np
 import evaluate
-from transformers import Trainer, TrainingArguments, GenerationConfig, LlamaForCausalLM, LlamaTokenizer
+from shared import make_dirs
+from transformers import Trainer, TrainingArguments, GenerationConfig, LlamaForCausalLM, LlamaTokenizer, DataCollatorForSeq2Seq
 from sklearn.model_selection import train_test_split
 from rouge_score import rouge_scorer
 from train_dataset import LlamaDataset
+from shared.prompter import Prompter
+import textwrap
 
 from peft import (
     prepare_model_for_int8_training,
@@ -26,6 +29,8 @@ class PeftTrainer:
     def __init__(self, model_name, cutoff_len = 512):
         device_map = "auto"
 
+        self.prompter = Prompter("alpaca")
+
         self.model = LlamaForCausalLM.from_pretrained(
             model_name,
             load_in_8bit=True,
@@ -35,7 +40,8 @@ class PeftTrainer:
 
         self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
 
-        self.tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
+        self.tokenizer.pad_token_id = 0
+
         self.tokenizer.padding_side = "left" # Allow batched inference
 
         self.model = prepare_model_for_int8_training(self.model)
@@ -61,16 +67,49 @@ class PeftTrainer:
             task_type="CAUSAL_LM",
         )
         self.model = get_peft_model(self.model, config)
+        self.model.print_trainable_parameters()
 
-    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=2e-5, val_set_size=0.1):
-        train_dataframe, val_dataframe = train_test_split(dataset,test_size=val_set_size)
+    def tokenize(self, prompt, add_eos_token=True):
+        result = self.tokenizer(
+            prompt,
+            truncation=True,
+            max_length=self.cutoff_len,
+            padding=False,
+            return_tensors=None,
+        )
+        if (
+            result["input_ids"][-1] != self.tokenizer.eos_token_id
+            and len(result["input_ids"]) < self.cutoff_len
+            and add_eos_token
+        ):
+            result["input_ids"].append(self.tokenizer.eos_token_id)
+            result["attention_mask"].append(1)
+    
+        result["labels"] = result["input_ids"].copy()
+    
+        return result
+ 
+    def generate_and_tokenize_prompt(self,data_point):
+        full_prompt = self.prompter.generate_prompt("Answer as a mental health expert.",data_point["prompt"],data_point["completion"])
+        tokenized_full_prompt = self.tokenize(full_prompt)
+        return tokenized_full_prompt
 
-        train_dataset = LlamaDataset(train_dataframe, self.tokenizer)
-        val_dataset = LlamaDataset(val_dataframe, self.tokenizer)
+    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=2e-5, val_set_size=200):
+        # split dataset into separate training and validation sets
+        train_val = dataset["train"].train_test_split(
+            test_size=val_set_size, shuffle=True, seed=42
+        )
+
+        # create prompts from the loaded dataset and tokenize them
+        train_dataset = (
+            train_val["train"].map(self.generate_and_tokenize_prompt)
+        )
+        val_dataset = (
+            train_val["test"].map(self.generate_and_tokenize_prompt)
+        )
 
         # training hyperparams
         full_batch_size = 128
-
         gradient_accumulation_steps = full_batch_size // batch_size
 
         # llm hyperparams
@@ -86,7 +125,7 @@ class PeftTrainer:
             warmup_steps=10,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs
-            logging_steps=10,
+            logging_steps=1,
             save_steps=100,                  # after # steps model is saved
             evaluation_strategy='steps',
             save_strategy="steps",
@@ -99,39 +138,14 @@ class PeftTrainer:
             group_by_length=group_by_length,
         )
 
-        metric_bleu = evaluate.load("bleu")
-
-        def compute_metrics(eval_preds):
-            logits, labels = eval_preds
-
-            predictions = logits.argmax(axis=-1)
-            
-            preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
-            labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
-
-            bleu = metric_bleu.compute(predictions=preds, references=labels)
-
-            scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-
-            # Compute rouge score between prediction and target
-            rouge_scores = []
-            for i in range(len(preds)):
-                prediction = preds[i]
-                target = labels[i]
-                scores = scorer.score(target, prediction)
-                rouge_scores.append(scores)
-
-            # Compute average rouge scores
-            rouge1 = np.mean([score['rouge1'].fmeasure for score in rouge_scores])
-            rouge2 = np.mean([score['rouge2'].fmeasure for score in rouge_scores])
-            rougeL = np.mean([score['rougeL'].fmeasure for score in rouge_scores])
-
-            return {"eval_bleu": bleu["bleu"], 'rouge1': rouge1, 'rouge2': rouge2, 'rougeL': rougeL}
+        data_collator = DataCollatorForSeq2Seq(
+            self.tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
+        )
         
         trainer = Trainer(
             model=self.model,
             args=training_args,
-            compute_metrics=compute_metrics,
+            data_collator=data_collator,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
         )
@@ -157,16 +171,118 @@ class PeftTrainer:
         self.model.save_pretrained(output_dir)
         self.tokenizer.save_pretrained(output_dir)
 
-        #metrics = train_result.metrics
-        #trainer.log_metrics("train", metrics)
-        #trainer.save_metrics("train", metrics)
+    def hyperparameter_search(self, dataset, val_set_size=200):
+        # split dataset into separate training and validation sets
+        train_val = dataset["train"].train_test_split(
+            test_size=val_set_size, shuffle=True, seed=42
+        )
 
+        # create prompts from the loaded dataset and tokenize them
+        train_dataset = (
+            train_val["train"].map(self.generate_and_tokenize_prompt)
+        )
+        val_dataset = (
+            train_val["test"].map(self.generate_and_tokenize_prompt)
+        )
+
+        # llm hyperparams
+        group_by_length = True  # faster, but produces an odd training loss curve
+        
+        training_args = TrainingArguments(
+            "test",
+            warmup_steps=10,       # number of warmup steps for learning rate scheduler
+            #weight_decay=0.01,              # strength of weight decay
+            logging_dir='./logs',            # directory for storing logs
+            logging_steps=1,
+            evaluation_strategy='steps',
+            optim="adamw_torch",
+            eval_steps=10,                  # Number of update steps between two evaluations.
+            fp16=True,                       # whether to use floating point 16 for training
+            fp16_opt_level="O1",             # see apex AMP optimization level for detail
+            group_by_length=group_by_length,
+        )
+
+        data_collator = DataCollatorForSeq2Seq(
+            self.tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
+        )
+        
+        def model_init():
+            return self.model
+        
+        trainer = Trainer(
+            model_init=model_init,
+            args=training_args,
+            data_collator=data_collator,
+            train_dataset=train_dataset,
+            eval_dataset=val_dataset,
+        )
+
+        self.model.config.use_cache = False
+
+        old_state_dict = self.model.state_dict
+        self.model.state_dict = (
+            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
+        ).__get__(self.model, type(self.model))
+
+        if torch.__version__ >= "2" and sys.platform != "win32":
+            self.model = torch.compile(self.model)
+                
+        # Default objective is the sum of all metrics
+        # when metrics are provided, so we have to maximize it.
+        trainer.hyperparameter_search(
+            direction="minimize", 
+            backend="ray", 
+            n_trials=10 # number of trials
+        )
+
+
+
+    def evaluation(self, test_inputs, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=4, repetition_penalty=1.1):
+
+        self.model = self.model.eval()
+
+        for input_text in test_inputs:
+            # Set prompt
+            prompt = self.prompter.generate_prompt("Answer as a mental health expert.",input_text)
+
+            input_encodings = self.tokenizer(prompt, return_tensors='pt')
+            input_ids = input_encodings['input_ids'].to(self.model.device)
+
+            generation_config = GenerationConfig(
+                temperature=temperature,
+                top_p=top_p,
+                #top_k=top_k,
+                #num_beams=num_beams,
+                repetition_penalty=repetition_penalty
+            )
+            
+            with torch.inference_mode():
+                # Use model.generate() to generate the response
+                response = self.model.generate(
+                    input_ids=input_ids,
+                    generation_config=generation_config,
+                    return_dict_in_generate=True,
+                    output_scores=True,
+                    max_new_tokens=max_new_tokens,
+                )
+
+            # Decode the response from the model back into text
+            decoded_output = self.tokenizer.decode(response.sequences[0])
+            response = self.prompter.get_response(decoded_output)
+
+            # Create CSV with evaluation results
+            make_dirs(output_path)
+            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
+                writer = csv.writer(csv_file, delimiter=",")
+                writer.writerow(["Input","Response"])
+                writer.writerow([input_text,response])
+    
     def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=1, repetition_penalty=1.1):
 
-        self.model.eval()
+        self.model = self.model.eval()
 
         # Set prompt
-        prompt = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n" + input_text + "\n\n### Response:\n"
+        prompt = self.prompter.generate_prompt("Answer as a mental health expert.",input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)
@@ -174,8 +290,8 @@ class PeftTrainer:
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
-            top_k=top_k,
-            num_beams=num_beams,
+            #top_k=top_k,
+            #num_beams=num_beams,
             repetition_penalty=repetition_penalty
         )
         
@@ -186,12 +302,11 @@ class PeftTrainer:
                 generation_config=generation_config,
                 return_dict_in_generate=True,
                 output_scores=True,
-                #do_sample=True,
                 max_new_tokens=max_new_tokens,
             )
 
         # Decode the response from the model back into text
         decoded_output = self.tokenizer.decode(response.sequences[0])
-        response = decoded_output.split("### Response:")[1].strip()
+        response = self.prompter.get_response(decoded_output)
 
         return response
