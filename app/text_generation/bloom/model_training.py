@@ -1,8 +1,9 @@
 import torch
+import csv
 import numpy as np
 import evaluate
 from transformers import Trainer, TrainingArguments
-from sklearn.model_selection import train_test_split
+from shared import make_dirs
 from rouge_score import rouge_scorer
 from transformers import BloomTokenizerFast, BloomForCausalLM, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
@@ -104,34 +105,6 @@ class BloomTrainer:
         data_collator = DataCollatorForSeq2Seq(
             self.tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         )
-        #metric_bleu = evaluate.load("bleu")
-
-        def compute_metrics(eval_preds):
-            logits, labels = eval_preds
-
-            predictions = logits.argmax(axis=-1)
-            
-            preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
-            labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
-
-            bleu = metric_bleu.compute(predictions=preds, references=labels)
-
-            scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-
-            # Compute rouge score between prediction and target
-            rouge_scores = []
-            for i in range(len(preds)):
-                prediction = preds[i]
-                target = labels[i]
-                scores = scorer.score(target, prediction)
-                rouge_scores.append(scores)
-
-            # Compute average rouge scores
-            rouge1 = np.mean([score['rouge1'].fmeasure for score in rouge_scores])
-            rouge2 = np.mean([score['rouge2'].fmeasure for score in rouge_scores])
-            rougeL = np.mean([score['rougeL'].fmeasure for score in rouge_scores])
-
-            return {"eval_bleu": bleu["bleu"], 'rouge1': rouge1, 'rouge2': rouge2, 'rougeL': rougeL}
         
         trainer = Trainer(
             model=self.model,
@@ -201,6 +174,32 @@ class BloomTrainer:
             backend="ray", 
             n_trials=10 # number of trials
         )
+
+    def evaluation(self, test_dataset, output_path, max_length=1000, top_p=0.9):
+
+        test_inputs = test_dataset["train"]
+        # Load metrics
+        bleu_metric = evaluate.load("bleu")
+        #rouge_metric = rouge_scorer.RougeScorer(['rouge1'], use_stemmer=True)
+        rouge_metric = evaluate.load("rouge")
+
+        # Create CSV with evaluation results
+        make_dirs(output_path)
+        with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
+            writer = csv.writer(csv_file, delimiter=",")
+            writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
+            #writer.writerow(["Input","Response"])
+
+        for input_text in test_inputs:
+            response = self.generate_response(input_text["input"], max_length, top_p)
+
+            # Create CSV with evaluation results
+            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
+                writer = csv.writer(csv_file, delimiter=",")
+                #print("BLEU:",bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0])
+                #print("ROUGE:",rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'])
+                writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
+                #writer.writerow([input_text["input"],response])
 
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
         self.model = self.model.eval()

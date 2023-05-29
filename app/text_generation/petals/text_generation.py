@@ -4,14 +4,14 @@ from transformers import GenerationConfig, BloomTokenizerFast
 from petals import DistributedBloomForCausalLM
 
 class PetalsChatbot:
-    def __init__(self, model_path, model_name="bigscience/bloom-petals"):
+    def __init__(self, model_path, model_name="bigscience/bloom-petals", template="alpaca"):
         self.model_path = model_path
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_path)
-        self.tokenizer.padding_side = "right" # Allow batched inference
+        self.tokenizer.padding_side = "left" # Allow batched inference
         self.tokenizer.model_max_length = 256
 
-        self.model = DistributedBloomForCausalLM.from_pretrained(model_name, tuning_mode="ptune", pre_seq_len=16)
+        self.model = DistributedBloomForCausalLM.from_pretrained(model_name)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         #self.model.to(self.device)
 

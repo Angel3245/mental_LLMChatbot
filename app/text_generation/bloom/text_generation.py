@@ -4,12 +4,12 @@ from transformers import BloomTokenizerFast, BloomForCausalLM
 from shared.prompter import Prompter
 
 class BloomChatbot:
-    def __init__(self, model_path):
+    def __init__(self, model_path, template="mentalbot"):
         self.model_path = model_path
 
         self.cutoff_len = 512
 
-        self.prompter = Prompter("mentalbot")
+        self.prompter = Prompter(template)
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token

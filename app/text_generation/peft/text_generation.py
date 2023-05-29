@@ -5,7 +5,7 @@ from peft import PeftModel
 from shared.prompter import Prompter
 
 class PeftChatbot:
-    def __init__(self, model_path, model_name="decapoda-research/llama-7b-hf"):
+    def __init__(self, model_path, model_name="decapoda-research/llama-7b-hf", template="alpaca"):
         self.model_path = model_path
 
         self.model = LlamaForCausalLM.from_pretrained(

@@ -39,9 +39,7 @@ class PeftTrainer:
         )
 
         self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
-
         self.tokenizer.pad_token_id = 0
-
         self.tokenizer.padding_side = "left" # Allow batched inference
 
         self.model = prepare_model_for_int8_training(self.model)
@@ -235,49 +233,32 @@ class PeftTrainer:
             n_trials=10 # number of trials
         )
 
-
-
-    def evaluation(self, test_inputs, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=4, repetition_penalty=1.1):
+    def evaluation(self, test_dataset, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
 
         self.model = self.model.eval()
 
+        test_inputs = test_dataset["train"]
+        # Load metrics
+        bleu_metric = evaluate.load("bleu")
+        rouge_metric = evaluate.load("rouge")
+
+        # Create CSV with evaluation results
+        make_dirs(output_path)
+        with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
+            writer = csv.writer(csv_file, delimiter=",")
+            writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
+
         for input_text in test_inputs:
-            # Set prompt
-            prompt = self.prompter.generate_prompt("Answer as a mental health expert.",input_text)
+            response = self.generate_response(input_text["input"], max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, repetition_penalty=repetition_penalty)
 
-            input_encodings = self.tokenizer(prompt, return_tensors='pt')
-            input_ids = input_encodings['input_ids'].to(self.model.device)
-
-            generation_config = GenerationConfig(
-                temperature=temperature,
-                top_p=top_p,
-                #top_k=top_k,
-                #num_beams=num_beams,
-                repetition_penalty=repetition_penalty
-            )
-            
-            with torch.inference_mode():
-                # Use model.generate() to generate the response
-                response = self.model.generate(
-                    input_ids=input_ids,
-                    generation_config=generation_config,
-                    return_dict_in_generate=True,
-                    output_scores=True,
-                    max_new_tokens=max_new_tokens,
-                )
-
-            # Decode the response from the model back into text
-            decoded_output = self.tokenizer.decode(response.sequences[0])
-            response = self.prompter.get_response(decoded_output)
-
+            print(response)
             # Create CSV with evaluation results
             make_dirs(output_path)
             with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
                 writer = csv.writer(csv_file, delimiter=",")
-                writer.writerow(["Input","Response"])
-                writer.writerow([input_text,response])
+                writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
     
-    def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=1, repetition_penalty=1.1):
+    def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
 
         self.model = self.model.eval()
 

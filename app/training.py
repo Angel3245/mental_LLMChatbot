@@ -1,10 +1,12 @@
 import argparse
+import sys
 from pathlib import Path
 from shared import *
 from text_generation.gpt2 import GPT2Trainer
 from text_generation.bloom import BloomTrainer
 from text_generation.peft import PeftTrainer
-#from text_generation.petals import PetalsTrainer
+if sys.platform != "win32":
+    from text_generation.petals import PetalsTrainer
 from transformation import *
 import pandas as pd
 from transformers import GPT2Tokenizer

@@ -1,12 +1,17 @@
 import argparse
 import sys
 from pathlib import Path
-from text_generation.gpt2 import GPT2Chatbot
-from text_generation.bloom import BloomChatbot
-from text_generation.peft import PeftChatbot
+from shared import *
+from text_generation.gpt2 import GPT2Trainer
+from text_generation.bloom import BloomTrainer
+from text_generation.peft import PeftTrainer
 if sys.platform != "win32":
-    from text_generation.petals import PetalsChatbot
-from preprocessing import preprocess
+    from text_generation.petals import PetalsTrainer
+from transformation import *
+import pandas as pd
+from transformers import GPT2Tokenizer
+import random
+from datasets import load_dataset
 
 if __name__ == "__main__":
 
@@ -20,10 +25,17 @@ if __name__ == "__main__":
 
     path = Path.cwd()
 
-    if args.option == "ask":
-        # python app\chatbot.py -o ask -m gpt2 -t chatbot_simple
-
+    if args.option == "evaluate":
+        # python app\evaluation.py -o evaluate -m gpt2
         model_name = args.model
+
+        test_filepath = F"{str(path)}/file/test/test_inputs.json"
+        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_name
+
+        dataset = load_dataset("json", data_files=test_filepath)
+        print("Test dataset:",dataset["train"])
+
+        #dataset = random.sample(list(dataset), 30)
 
         if not(args.base_model):
             # Load model from disk
@@ -33,30 +45,21 @@ if __name__ == "__main__":
             model_path = args.base_model
 
         if(model_name == "gpt2"):
-            chatbot = GPT2Chatbot(model_path, args.template)
+            model = GPT2Trainer(model_path)
         elif(model_name == "bloom"):
-            chatbot = BloomChatbot(model_path, args.template)
+            model = BloomTrainer(model_path)
         elif(model_name == "petals"):
-            chatbot = PetalsChatbot(model_path, args.template)
+            model = PetalsTrainer("bigscience/bloom-7b1-petals")
         elif(model_name == "peft"):
-            chatbot = PeftChatbot(model_path,"decapoda-research/llama-7b-hf", args.template)
+            model = PeftTrainer("decapoda-research/llama-7b-hf")
         else:
             raise ValueError('model ' + model_name + ' not exist')
-        
-        #chatbot = Chatbot("gpt2")
 
-        # Ask questions to chatbot and create responses
-        while True:
-            user_input = input("Usuario: ")
-            if user_input.lower() == 'salir':
-                break
-            response = chatbot.generate_response(user_input)
-            print(f"Chatbot: {response}")
+        model.evaluation(dataset, output_path)
 
-    if args.option == "gui":
-        # python app\chatbot.py -o gui
-        dataset = F"{str(path)}/file/datasets/Reddit_posts.csv"
+        print("Evaluation results dumped to",output_path)
 
-        #ask_sentence(dataset)
+
+    ###
 
     print("PROGRAM FINISHED")
