@@ -2,13 +2,12 @@ import torch
 import torch.nn as nn
 import numpy as np
 import evaluate
+import sys, os, csv
 from tqdm import tqdm
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from transformers import Trainer, TrainingArguments, get_scheduler, DataCollatorForSeq2Seq, GenerationConfig
 from sklearn.model_selection import train_test_split
-from rouge_score import rouge_scorer
-from train_dataset import PetalsDataset
 from shared.prompter import Prompter
 from shared import make_dirs
 
@@ -19,10 +18,13 @@ from shared.prompter import Prompter
 
 from peft import (
     prepare_model_for_int8_training,
-    LoraConfig,
+    PrefixTuningConfig,
     get_peft_model,
+    get_peft_config,
     get_peft_model_state_dict,
     PeftModel,
+    PeftType,
+    TaskType
 )
 
 import logging
@@ -77,17 +79,7 @@ class PetalsTrainer:
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_name)
         self.tokenizer.pad_token_id = 0
-        self.tokenizer.padding_side = "left" # Allow batched inference
-
-        """ INTERMEDIATE_SIZE = 32
-        ADAPTER_LAYER_POSITION = 6
-        HEAD_LAYER_POSITION = 10
-        self.model = BloomBasedClassifier(
-            DistributedBloomForCausalLM.from_pretrained(model_name),
-            intermediate_size=INTERMEDIATE_SIZE,
-            adapter_layer_position=ADAPTER_LAYER_POSITION,
-            head_layer_position=HEAD_LAYER_POSITION,
-        ) """
+        self.tokenizer.padding_side = "right" # Allow batched inference
 
         self.model = DistributedBloomForCausalLM.from_pretrained(model_name)
         #self.model = prepare_model_for_int8_training(self.model)
@@ -95,44 +87,28 @@ class PetalsTrainer:
         # training hyperparams
         self.cutoff_len = cutoff_len
 
-        # lora hyperparams
-        lora_r = 8
-        lora_alpha = 16
-        lora_dropout = 0.05
-        """ lora_target_modules = [
-            "adapter",
-        ] """
-
-        config = LoraConfig(
-            r=lora_r,
-            lora_alpha=lora_alpha,
-            #target_modules=lora_target_modules,
-            lora_dropout=lora_dropout,
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
+        config = PrefixTuningConfig(task_type=TaskType.CAUSAL_LM, num_virtual_tokens=30)
         self.model = get_peft_model(self.model, config)
         self.model.print_trainable_parameters()
+        print(self.model.peft_config)
 
         self.model.to("cuda")
 
     def tokenize(self, prompt, add_eos_token=True):
+        if add_eos_token:
+            prompt += self.tokenizer.eos_token
+
         result = self.tokenizer(
             prompt,
             truncation=True,
             max_length=self.cutoff_len,
-            padding=False,
-            return_tensors=None,
+            padding='max_length',
+            return_tensors='pt'
         )
-        if (
-            result["input_ids"][-1] != self.tokenizer.eos_token_id
-            and len(result["input_ids"]) < self.cutoff_len
-            and add_eos_token
-        ):
-            result["input_ids"].append(self.tokenizer.eos_token_id)
-            result["attention_mask"].append(1)
     
-        result["labels"] = result["input_ids"].copy()
+        result["labels"] = torch.clone(result["input_ids"])
+
+        result.pop("attention_mask")
     
         return result
  
@@ -158,9 +134,6 @@ class PetalsTrainer:
         # training hyperparams
         full_batch_size = 128
         gradient_accumulation_steps = full_batch_size // batch_size
-
-        # llm hyperparams
-        group_by_length = True  # faster, but produces an odd training loss curve
         
         training_args = TrainingArguments(
             output_dir=output_dir,          # output directory
@@ -182,17 +155,18 @@ class PetalsTrainer:
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             save_total_limit=3,
             load_best_model_at_end=True,
-            group_by_length=group_by_length,
         )
 
         data_collator = DataCollatorForSeq2Seq(
-            self.tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
+            self.tokenizer, pad_to_multiple_of=8, 
+            return_tensors="pt",
+            padding=True
         )
         
         trainer = Trainer(
             model=self.model,
             args=training_args,
-            data_collator=data_collator,
+            #data_collator=data_collator,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
         )

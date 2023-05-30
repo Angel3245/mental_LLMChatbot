@@ -8,6 +8,7 @@ from rouge_score import rouge_scorer
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
 from shared import make_dirs
+from ray import tune
 
 import logging
 logging.basicConfig(
@@ -168,11 +169,22 @@ class GPT2Trainer:
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
                 
+        def my_hp_space(trial):
+            return {
+                "learning_rate": tune.choice([5e-5, 3e-5, 2e-5]),
+                "num_train_epochs": tune.choice([1, 2, 3]),
+                "per_device_train_batch_size": tune.choice([1, 2, 4, 8])
+            }
+        
         # Try to minimize loss
         best_run = trainer.hyperparameter_search(
             direction="minimize", 
             backend="ray", 
-            n_trials=10 # number of trials
+            n_trials=10, # number of trials
+            hp_space=my_hp_space,
+            #local_dir="~/ray_results/",
+            #name="tune_gpt2_pbt",
+            #log_to_file=True,
         )
 
         print(best_run)

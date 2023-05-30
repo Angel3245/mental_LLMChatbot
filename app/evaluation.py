@@ -37,21 +37,23 @@ if __name__ == "__main__":
 
         #dataset = random.sample(list(dataset), 30)
 
-        if not(args.base_model):
+        if not args.base_model or model_name == "peft":
             # Load model from disk
             model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
+            print("Loading model from",F"{str(path)}/output/MentalKnowledge/"+model_name)
         else:
             # Load model from Huggingface
             model_path = args.base_model
+            print("Loading model from Huggingface")
 
         if(model_name == "gpt2"):
             model = GPT2Trainer(model_path)
         elif(model_name == "bloom"):
             model = BloomTrainer(model_path)
         elif(model_name == "petals"):
-            model = PetalsTrainer("bigscience/bloom-7b1-petals")
+            model = PetalsTrainer(model_path)
         elif(model_name == "peft"):
-            model = PeftTrainer("decapoda-research/llama-7b-hf")
+            model = PeftTrainer(model_path, args.base_model, is_peft=True)
         else:
             raise ValueError('model ' + model_name + ' not exist')
 

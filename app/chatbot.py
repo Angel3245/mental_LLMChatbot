@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
         model_name = args.model
 
-        if not(args.base_model):
+        if not args.base_model or model_name == "peft":
             # Load model from disk
             model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
         else:
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         elif(model_name == "petals"):
             chatbot = PetalsChatbot(model_path, args.template)
         elif(model_name == "peft"):
-            chatbot = PeftChatbot(model_path,"decapoda-research/llama-7b-hf", args.template)
+            chatbot = PeftChatbot(model_path,args.base_model, args.template)
         else:
             raise ValueError('model ' + model_name + ' not exist')
         

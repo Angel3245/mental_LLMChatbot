@@ -18,9 +18,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
     parser.add_argument("-m", "--model", type=str, help="select a model", default='GPT2')
+    parser.add_argument("-b", "--base_model", type=str, help="select a model to load from huggingface")
     parser.add_argument("-d", "--dataset", type=str, help="select a dataset", default="MentalKnowledge")
     parser.add_argument("-e", "--epochs", type=int, help="select a number of epochs for training")
-    parser.add_argument("-b", "--batch_size", type=int, help="select a batch size value")
+    parser.add_argument("-batch", "--batch_size", type=int, help="select a batch size value")
     parser.add_argument("-lr", "--learning_rate", type=float, help="select a learning rate value")
     parser.add_argument("-neg", "--neg_type", type=str, help="select a negative type")
     parser.add_argument("-loss", "--loss_type", type=str, help="select a loss_type")
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     path = Path.cwd()
 
     if args.option == "finetune_model":
-        # python app\training.py -o finetune_model -m gpt2
+        # python app\training.py -o finetune_model -m gpt2 -b gpt2
         dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
         dataset = load_dataset("json", data_files=dataset_filepath)
         print("Train dataset:",dataset["train"])
@@ -39,16 +40,16 @@ if __name__ == "__main__":
         #dataset = random.sample(list(dataset), 30)
 
         model_name = args.model
-        output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
+        output_path = F"{str(path)}/output/MentalKnowledge/"+model_name+"/"+args.base_model
 
         if(model_name == "gpt2"):
-            model = GPT2Trainer(model_name)
+            model = GPT2Trainer(args.base_model) #gpt2
         elif(model_name == "bloom"):
-            model = BloomTrainer("bigscience/bloom-560m")
+            model = BloomTrainer(args.base_model) #bigscience/bloom-1b7
         elif(model_name == "petals"):
-            model = PetalsTrainer("bigscience/bloom-7b1-petals")
+            model = PetalsTrainer(args.base_model) #bigscience/bloom-7b1-petals
         elif(model_name == "peft"):
-            model = PeftTrainer("decapoda-research/llama-7b-hf")
+            model = PeftTrainer(None,args.base_model) #decapoda-research/llama-7b-hf, chavinlo/alpaca-native
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
@@ -64,7 +65,6 @@ if __name__ == "__main__":
         #dataset = random.sample(list(dataset), 30)
 
         model_name = args.model
-        output_path = F"{str(path)}/output/MentalKnowledge/"+model_name
 
         if(model_name == "gpt2"):
             model = GPT2Trainer(model_name)

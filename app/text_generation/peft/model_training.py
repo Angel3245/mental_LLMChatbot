@@ -26,45 +26,59 @@ logging.basicConfig(
     )
 
 class PeftTrainer:
-    def __init__(self, model_name, cutoff_len = 512):
+    def __init__(self, model_path, base_model, cutoff_len = 512, is_peft=False):
         device_map = "auto"
 
         self.prompter = Prompter("alpaca")
 
-        self.model = LlamaForCausalLM.from_pretrained(
-            model_name,
-            load_in_8bit=True,
-            torch_dtype=torch.float16,
-            device_map=device_map,
-        )
+        if is_peft:
+            # Load Peft model
+            self.model = LlamaForCausalLM.from_pretrained(
+                base_model,
+                load_in_8bit=True,
+                torch_dtype=torch.float16,
+                device_map=device_map,
+            )
 
-        self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
+            self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
+            self.tokenizer = LlamaTokenizer.from_pretrained(model_path)
+        else:
+            # Create Peft model from LLaMa model
+            self.model = LlamaForCausalLM.from_pretrained(
+                base_model,
+                load_in_8bit=True,
+                torch_dtype=torch.float16,
+                device_map=device_map,
+            )
+
+            self.model = prepare_model_for_int8_training(self.model)
+
+            # lora hyperparams
+            lora_r = 8
+            lora_alpha = 16
+            lora_dropout = 0.05
+            lora_target_modules = [
+                "q_proj",
+                "v_proj",
+            ]
+
+            config = LoraConfig(
+                r=lora_r,
+                lora_alpha=lora_alpha,
+                target_modules=lora_target_modules,
+                lora_dropout=lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+            self.model = get_peft_model(self.model, config)
+            self.tokenizer = LlamaTokenizer.from_pretrained(base_model)
+
         self.tokenizer.pad_token_id = 0
         self.tokenizer.padding_side = "left" # Allow batched inference
-
-        self.model = prepare_model_for_int8_training(self.model)
 
         # training hyperparams
         self.cutoff_len = cutoff_len
 
-        # lora hyperparams
-        lora_r = 8
-        lora_alpha = 16
-        lora_dropout = 0.05
-        lora_target_modules = [
-            "q_proj",
-            "v_proj",
-        ]
-
-        config = LoraConfig(
-            r=lora_r,
-            lora_alpha=lora_alpha,
-            target_modules=lora_target_modules,
-            lora_dropout=lora_dropout,
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
-        self.model = get_peft_model(self.model, config)
         self.model.print_trainable_parameters()
 
     def tokenize(self, prompt, add_eos_token=True):
@@ -251,7 +265,6 @@ class PeftTrainer:
         for input_text in test_inputs:
             response = self.generate_response(input_text["input"], max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, repetition_penalty=repetition_penalty)
 
-            print(response)
             # Create CSV with evaluation results
             make_dirs(output_path)
             with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
@@ -288,6 +301,6 @@ class PeftTrainer:
 
         # Decode the response from the model back into text
         decoded_output = self.tokenizer.decode(response.sequences[0])
-        response = self.prompter.get_response(decoded_output)
+        response = self.prompter.get_response(decoded_output)[ : -1]
 
         return response
