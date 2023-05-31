@@ -7,10 +7,6 @@ from text_generation.bloom import BloomTrainer, BloomPeftTrainer
 from text_generation.peft import PeftTrainer
 if sys.platform != "win32":
     from text_generation.petals import PetalsTrainer
-from transformation import *
-import pandas as pd
-from transformers import GPT2Tokenizer
-import random
 from datasets import load_dataset
 
 if __name__ == "__main__":

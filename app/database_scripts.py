@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from transformation import *
-from DB.connect import database_connect
+from database.connect import database_connect
 from model import *
 import csv
 import pandas as pd
