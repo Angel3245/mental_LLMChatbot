@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 from text_generation.gpt2 import GPT2Chatbot
-from text_generation.bloom import BloomChatbot
+from text_generation.bloom import BloomChatbot, BloomPeftChatbot
 from text_generation.peft import PeftChatbot
 if sys.platform != "win32":
     from text_generation.petals import PetalsChatbot
@@ -25,17 +25,15 @@ if __name__ == "__main__":
 
         model_name = args.model
 
-        if not args.base_model or model_name == "peft":
-            # Load model from disk
-            model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
-        else:
-            # Load model from Huggingface
-            model_path = args.base_model
+        # Load model from disk
+        model_path = F"{str(path)}/output/MentalKnowledge/"+model_name+"/"+args.base_model
+        print("Loading model from",model_path)
 
         if(model_name == "gpt2"):
             chatbot = GPT2Chatbot(model_path, args.template)
         elif(model_name == "bloom"):
-            chatbot = BloomChatbot(model_path, args.template)
+            #chatbot = BloomChatbot(model_path, args.template)
+            chatbot = BloomPeftChatbot(model_path, args.template)
         elif(model_name == "petals"):
             chatbot = PetalsChatbot(model_path, args.template)
         elif(model_name == "peft"):

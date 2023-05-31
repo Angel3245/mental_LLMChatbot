@@ -92,7 +92,7 @@ class BloomTrainer:
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs
             logging_steps=10,
-            save_steps=1000,                  # after # steps model is saved
+            #save_steps=1000,                  # after # steps model is saved
             evaluation_strategy='steps',
             optim="adamw_torch",
             eval_steps=1000,                  # Number of update steps between two evaluations.

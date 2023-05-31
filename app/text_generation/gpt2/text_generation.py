@@ -4,7 +4,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from shared.prompter import Prompter
 
 class GPT2Chatbot:
-    def __init__(self, model_path, template="chatbot_simple"):
+    def __init__(self, model_path, template="mentalbot"):
         self.model_path = model_path
 
         self.cutoff_len = 512
@@ -28,8 +28,8 @@ class GPT2Chatbot:
     
         self.model = self.model.eval()
 
-        # Set prompt: <bos> input
-        prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(input_text)
+        # Set prompt
+        prompt = self.prompter.generate_prompt(input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)

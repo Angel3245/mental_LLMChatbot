@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from shared import *
 from text_generation.gpt2 import GPT2Trainer
-from text_generation.bloom import BloomTrainer
+from text_generation.bloom import BloomTrainer, BloomPeftTrainer
 from text_generation.peft import PeftTrainer
 if sys.platform != "win32":
     from text_generation.petals import PetalsTrainer
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         if(model_name == "gpt2"):
             model = GPT2Trainer(args.base_model) #gpt2
         elif(model_name == "bloom"):
-            model = BloomTrainer(args.base_model) #bigscience/bloom-1b7
+            model = BloomPeftTrainer(None,args.base_model) #bigscience/bloom-1b7
         elif(model_name == "petals"):
             model = PetalsTrainer(args.base_model) #bigscience/bloom-7b1-petals
         elif(model_name == "peft"):

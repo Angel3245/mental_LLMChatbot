@@ -26,7 +26,7 @@ if __name__ == "__main__":
     path = Path.cwd()
 
     if args.option == "evaluate":
-        # python app\evaluation.py -o evaluate -m gpt2
+        # python app\evaluation.py -o evaluate -m gpt2 -b gpt2
         model_name = args.model
 
         test_filepath = F"{str(path)}/file/test/test_inputs.json"
@@ -37,14 +37,9 @@ if __name__ == "__main__":
 
         #dataset = random.sample(list(dataset), 30)
 
-        if not args.base_model or model_name == "peft":
-            # Load model from disk
-            model_path = F"{str(path)}/output/MentalKnowledge/"+model_name
-            print("Loading model from",F"{str(path)}/output/MentalKnowledge/"+model_name)
-        else:
-            # Load model from Huggingface
-            model_path = args.base_model
-            print("Loading model from Huggingface")
+        # Load model from disk
+        model_path = F"{str(path)}/output/MentalKnowledge/"+model_name+"/"+args.base_model
+        print("Loading model from",model_path)
 
         if(model_name == "gpt2"):
             model = GPT2Trainer(model_path)

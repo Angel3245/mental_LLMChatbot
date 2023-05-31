@@ -75,7 +75,7 @@ class BloomBasedChatbot(nn.Module):
   
 class PetalsTrainer:
     def __init__(self, model_name="bigscience/bloom-petals", cutoff_len = 512):
-        self.prompter = Prompter("chatbot_simple")
+        self.prompter = Prompter("petals")
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_name)
         self.tokenizer.pad_token_id = 0
