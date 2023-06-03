@@ -131,12 +131,8 @@ class GPT2Trainer:
 
     def hyperparameter_search(self, dataset):
         train_dataset, val_dataset = self.split_train_val_sets(dataset)
-
-        # llm hyperparams
-        group_by_length = True  # faster, but produces an odd training loss curve
         
         training_args = TrainingArguments(
-            "test",
             warmup_steps=10,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs
@@ -145,8 +141,7 @@ class GPT2Trainer:
             optim="adamw_torch",
             eval_steps=10,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
-            fp16_opt_level="O1",             # see apex AMP optimization level for detail
-            group_by_length=group_by_length,
+            fp16_opt_level="O1"             # see apex AMP optimization level for detail
         )
 
         data_collator = DataCollatorForSeq2Seq(
@@ -171,9 +166,9 @@ class GPT2Trainer:
                 
         def my_hp_space(trial):
             return {
-                "learning_rate": tune.choice([5e-5, 3e-5, 2e-5]),
+                "learning_rate": tune.choice([5e-5, 2e-5, 2e-4]),
                 "num_train_epochs": tune.choice([1, 2, 3]),
-                "per_device_train_batch_size": tune.choice([1, 2, 4, 8])
+                "per_device_train_batch_size": tune.choice([2, 4, 8])
             }
         
         # Try to minimize loss
@@ -181,10 +176,7 @@ class GPT2Trainer:
             direction="minimize", 
             backend="ray", 
             n_trials=10, # number of trials
-            hp_space=my_hp_space,
-            #local_dir="~/ray_results/",
-            #name="tune_gpt2_pbt",
-            #log_to_file=True,
+            hp_space=my_hp_space
         )
 
         print(best_run)

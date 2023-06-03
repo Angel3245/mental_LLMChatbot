@@ -13,13 +13,14 @@ class BloomPeftChatbot:
         self.model = BloomForCausalLM.from_pretrained(
             config.base_model_name_or_path,
             load_in_8bit=True,
+            return_dict=True,
             torch_dtype=torch.float16,
             device_map="auto",
         )
 
         self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
 
-        self.tokenizer = BloomTokenizerFast.from_pretrained(model_path)
+        self.tokenizer = BloomTokenizerFast.from_pretrained(config.base_model_name_or_path)
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token

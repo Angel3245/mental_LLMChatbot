@@ -75,22 +75,16 @@ class BloomBasedChatbot(nn.Module):
   
 class PetalsTrainer:
     def __init__(self, model_name="bigscience/bloom-petals", cutoff_len = 512):
-        self.prompter = Prompter("petals")
+        self.prompter = Prompter("mentalbot")
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_name)
-        self.tokenizer.pad_token_id = 0
         self.tokenizer.padding_side = "right" # Allow batched inference
 
-        self.model = DistributedBloomForCausalLM.from_pretrained(model_name)
-        #self.model = prepare_model_for_int8_training(self.model)
+        self.model = DistributedBloomForCausalLM.from_pretrained(model_name, pre_seq_len=16, 
+            tuning_mode='ptune')
 
         # training hyperparams
         self.cutoff_len = cutoff_len
-
-        config = PrefixTuningConfig(task_type=TaskType.CAUSAL_LM, num_virtual_tokens=30)
-        self.model = get_peft_model(self.model, config)
-        self.model.print_trainable_parameters()
-        print(self.model.peft_config)
 
         self.model.to("cuda")
 
@@ -117,7 +111,7 @@ class PetalsTrainer:
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
 
-    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=2e-5, val_set_size=200):
+    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=2e-4, val_set_size=200):
         # split dataset into separate training and validation sets
         train_val = dataset["train"].train_test_split(
             test_size=val_set_size, shuffle=True, seed=42
@@ -166,7 +160,7 @@ class PetalsTrainer:
         trainer = Trainer(
             model=self.model,
             args=training_args,
-            #data_collator=data_collator,
+            data_collator=data_collator,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
         )

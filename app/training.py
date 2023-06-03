@@ -41,19 +41,30 @@ if __name__ == "__main__":
         if(model_name == "gpt2"):
             model = GPT2Trainer(args.base_model) #gpt2
         elif(model_name == "bloom"):
-            model = BloomPeftTrainer(None,args.base_model) #bigscience/bloom-1b7
+            model = BloomPeftTrainer(base_model=args.base_model) #bigscience/bloom-560m, bigscience/bloom-1b7, bigscience/bloom-7b1
         elif(model_name == "petals"):
             model = PetalsTrainer(args.base_model) #bigscience/bloom-7b1-petals
         elif(model_name == "peft"):
-            model = PeftTrainer(None,args.base_model) #decapoda-research/llama-7b-hf, chavinlo/alpaca-native
+            model = PeftTrainer(base_model=args.base_model) #decapoda-research/llama-7b-hf, chavinlo/alpaca-native
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
         model.train(dataset, output_path)
+        print("Where can I find self help materials for anxiety?")
         print(model.generate_response("Where can I find self help materials for anxiety?"))
+        print("What is depression?")
+        print(model.generate_response("What is depression?"))
+
+        """ test_filepath = F"{str(path)}/file/test/test_inputs.json"
+        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_name
+        dataset = load_dataset("json", data_files=test_filepath)
+        print("Test dataset:",dataset["train"])
+
+        model.evaluation(dataset, output_path)
+        print("Evaluation results dumped to",output_path) """
 
     if args.option == "hyperparameter_search":
-        # python app\training.py -o hyperparameter_search -m gpt2
+        # python app\training.py -o hyperparameter_search -m gpt2 -b gpt2
         dataset_filepath = F"{str(path)}/file/data/MentalKnowledge/input_label_pairs.json"
         dataset = load_dataset("json", data_files=dataset_filepath)
         print("Train dataset:",dataset["train"])
@@ -63,17 +74,22 @@ if __name__ == "__main__":
         model_name = args.model
 
         if(model_name == "gpt2"):
-            model = GPT2Trainer(model_name)
+            model = GPT2Trainer(args.base_model) #gpt2
         elif(model_name == "bloom"):
-            model = BloomTrainer("bigscience/bloom-560m")
+            model = BloomPeftTrainer(base_model=args.base_model) #bigscience/bloom-560m
         elif(model_name == "petals"):
-            model = PetalsTrainer("bigscience/bloom-7b1-petals")
+            model = PetalsTrainer(args.base_model) #bigscience/bloom-7b1-petals
         elif(model_name == "peft"):
-            model = PeftTrainer("decapoda-research/llama-7b-hf")
+            model = PeftTrainer(base_model=args.base_model) #decapoda-research/llama-7b-hf
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
-        model.hyperparameter_search(dataset)
+        model.hyperparameter_search_ray(dataset)
+        """ for epochs in [1, 2, 3]:
+            for lr in [5e-5, 2e-5, 2e-4]:
+                for batch_size in [2, 4, 8]:
+                    print("Training epochs:",epochs,"lr:",lr,"batch_size:",batch_size)
+                    model.hyperparameter_search(dataset, epochs=epochs, batch_size=batch_size, lr=lr) """
 
     # Create CSV with results from several hyperparameter configurations
     '''

@@ -14,7 +14,7 @@ def refresh_token():
 
     path = Path.cwd()
 
-    with open(f"{str(path)}/files/client_secrets.json") as json_file:
+    with open(f"{str(path)}/file/reddit_database/client_secrets.json") as json_file:
         data = json.load(json_file)
 
     reddit = praw.Reddit(client_id=data['client_id'],

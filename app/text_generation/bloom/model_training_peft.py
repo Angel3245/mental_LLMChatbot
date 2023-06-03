@@ -1,9 +1,10 @@
 import torch
-import os, sys, csv
+import os, sys, csv, copy
 import evaluate
 from shared import make_dirs
 from transformers import Trainer, TrainingArguments, GenerationConfig, BloomTokenizerFast, BloomForCausalLM, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
+from ray import tune
 
 from peft import (
     prepare_model_for_int8_training,
@@ -11,6 +12,7 @@ from peft import (
     get_peft_model,
     get_peft_model_state_dict,
     PeftModel,
+    PeftConfig
 )
 
 import logging
@@ -21,24 +23,30 @@ logging.basicConfig(
     )
 
 class BloomPeftTrainer:
-    def __init__(self, model_path, base_model, cutoff_len = 512, is_peft=False):
+    def __init__(self, model_path=None, base_model=None, cutoff_len = 512):
         device_map = "auto"
 
         self.prompter = Prompter("mentalbot")
 
-        if is_peft:
+        if not model_path == None:
             # Load Peft model
+            print("Loading Peft model from disk")
+            config = PeftConfig.from_pretrained(model_path)
+
             self.model = BloomForCausalLM.from_pretrained(
-                base_model,
+                config.base_model_name_or_path,
                 load_in_8bit=True,
+                return_dict=True,
                 torch_dtype=torch.float16,
-                device_map=device_map,
+                device_map="auto",
             )
 
             self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
-            self.tokenizer = BloomTokenizerFast.from_pretrained(model_path)
+            self.tokenizer = BloomTokenizerFast.from_pretrained(config.base_model_name_or_path)
+            
         else:
             # Create Peft model from Bloom model
+            print("Creating Peft model from Bloom model")
             self.model = BloomForCausalLM.from_pretrained(
                 base_model,
                 load_in_8bit=True,
@@ -98,7 +106,7 @@ class BloomPeftTrainer:
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
 
-    def train(self, dataset, output_dir, epochs=4, batch_size=4, lr=2e-4, val_set_size=200):
+    def train(self, dataset, output_dir, epochs=2, batch_size=4, lr=5e-4, val_set_size=200):
         # split dataset into separate training and validation sets
         train_val = dataset["train"].train_test_split(
             test_size=val_set_size, shuffle=True, seed=42
@@ -126,12 +134,11 @@ class BloomPeftTrainer:
             save_steps=1000,                  # after # steps model is saved
             evaluation_strategy='steps',
             save_strategy="no",
-            optim="adafactor",
+            optim="adamw_torch",
             eval_steps=1000,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
-            #save_total_limit=3,
-            #load_best_model_at_end=True,
+            report_to="tensorboard"
         )
 
         data_collator = DataCollatorForSeq2Seq(
@@ -167,10 +174,79 @@ class BloomPeftTrainer:
         self.model.save_pretrained(output_dir)
         self.tokenizer.save_pretrained(output_dir)
 
-    def hyperparameter_search(self, dataset, val_set_size=200):
+    def hyperparameter_search(self, dataset, epochs=2, batch_size=4, lr=2e-4, val_set_size=200):
         # split dataset into separate training and validation sets
         train_val = dataset["train"].train_test_split(
             test_size=val_set_size, shuffle=True, seed=42
+        )
+
+        # create prompts from the loaded dataset and tokenize them
+        train_dataset = (
+            train_val["train"].map(self.generate_and_tokenize_prompt)
+        )
+        val_dataset = (
+            train_val["test"].map(self.generate_and_tokenize_prompt)
+        )
+
+        # training hyperparams
+        full_batch_size = 128
+        gradient_accumulation_steps = full_batch_size // batch_size
+        
+        training_args = TrainingArguments(
+            output_dir='./logs',          # output directory
+            num_train_epochs=epochs,         # total number of training epochs
+            per_device_train_batch_size=batch_size,  # batch size per device during training
+            per_device_eval_batch_size=batch_size,   # batch size for evaluation
+            learning_rate=lr,               # learning rate
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            #warmup_steps=10,       # number of warmup steps for learning rate scheduler
+            #weight_decay=0.01,              # strength of weight decay
+            logging_dir='./logs',            # directory for storing logs
+            logging_steps=10,
+            save_steps=1000,                  # after # steps model is saved
+            evaluation_strategy='steps',
+            save_strategy="no",
+            optim="adamw_torch",
+            eval_steps=1000,                  # Number of update steps between two evaluations.
+            fp16=True,                       # whether to use floating point 16 for training
+            fp16_opt_level="O1",             # see apex AMP optimization level for detail
+            report_to="tensorboard"
+        )
+
+        data_collator = DataCollatorForSeq2Seq(
+            self.tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
+        )
+        
+        trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            data_collator=data_collator,
+            train_dataset=train_dataset,
+            eval_dataset=val_dataset,
+        )
+
+        self.model.config.use_cache = False
+
+        old_state_dict = self.model.state_dict
+        self.model.state_dict = (
+            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
+        ).__get__(self.model, type(self.model))
+
+        if torch.__version__ >= "2" and sys.platform != "win32":
+            self.model = torch.compile(self.model)
+                
+        train_result = trainer.train()
+
+        metrics = train_result.metrics
+        trainer.log_metrics("train", metrics)
+
+        print(metrics, file=open('output.txt', 'a'))
+
+
+    def hyperparameter_search_ray(self, dataset):   
+        # split dataset into separate training and validation sets
+        train_val = dataset["train"].train_test_split(
+            test_size=200, shuffle=True, seed=42
         )
 
         # create prompts from the loaded dataset and tokenize them
@@ -185,14 +261,15 @@ class BloomPeftTrainer:
         group_by_length = True  # faster, but produces an odd training loss curve
         
         training_args = TrainingArguments(
-            "test",
-            warmup_steps=10,       # number of warmup steps for learning rate scheduler
+            #warmup_steps=10,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
+            output_dir='./logs',            # directory for storing output
             logging_dir='./logs',            # directory for storing logs
+            gradient_accumulation_steps=4,
             logging_steps=1,
             evaluation_strategy='steps',
             optim="adamw_torch",
-            eval_steps=10,                  # Number of update steps between two evaluations.
+            eval_steps=1000,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             group_by_length=group_by_length,
@@ -203,7 +280,7 @@ class BloomPeftTrainer:
         )
         
         def model_init():
-            return self.model
+            return copy.deepcopy(self.model)
         
         trainer = Trainer(
             model_init=model_init,
@@ -223,13 +300,23 @@ class BloomPeftTrainer:
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
                 
+        def my_hp_space(trial):
+            return {
+                "learning_rate": tune.loguniform(1e-6, 1e-4),
+                "num_train_epochs": tune.choice([1, 2, 3]),
+                "per_device_train_batch_size": tune.choice([2, 4, 8])
+            }
+        
         # Default objective is the sum of all metrics
         # when metrics are provided, so we have to maximize it.
-        trainer.hyperparameter_search(
+        best_run = trainer.hyperparameter_search(
             direction="minimize", 
             backend="ray", 
-            n_trials=10 # number of trials
+            n_trials=10, # number of trials
+            hp_space=my_hp_space
         )
+
+        print(best_run)
 
     def evaluation(self, test_dataset, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
 
