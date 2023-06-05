@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 from shared import *
-from transformation import *
+from transformation import create_dataset
 
 if __name__ == "__main__":
 
@@ -30,12 +30,13 @@ if __name__ == "__main__":
             comments_path = F"{str(path)}/file/datasets/Reddit_comments.csv"
             output_path = F"{str(path)}/file/data/"+args.dataset
 
-            qa_mentalfaq = parse_mentalfaq(file_path)
-            qa_reddit = parse_redditposts_textgeneration(posts_path, comments_path)
+            dataset_processed = create_dataset(file_path, posts_path, comments_path)
 
             # Dump data to json file
             make_dirs(output_path)
-            dump_to_json(qa_mentalfaq+qa_reddit, output_path+'/input_label_pairs.json', sort_keys=False)
+            dump_to_json(dataset_processed, output_path+'/input_label_pairs.json', sort_keys=False)
+
+            print("Dataset",args.dataset, "created.")
         else:
             print("Dataset not selected")
 

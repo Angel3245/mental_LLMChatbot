@@ -6,7 +6,7 @@ from text_generation.bloom import BloomChatbot, BloomPeftChatbot
 from text_generation.peft import PeftChatbot
 if sys.platform != "win32":
     from text_generation.petals import PetalsChatbot
-from preprocessing import preprocess
+from clean_dataset import clean_sentence
 
 if __name__ == "__main__":
 

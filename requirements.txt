@@ -3,10 +3,13 @@ evaluate==0.4.0
 InquirerPy==0.3.4
 numpy==1.24.2
 pandas==2.0.0
+praw==7.7.0
+ray==2.4.0
 redditcleaner==1.1.2
 rouge_score==0.1.2
 scikit_learn==1.2.2
 SQLAlchemy==2.0.15
 textblob==0.17.1
 torch==2.0.0+cu117
+tqdm==4.65.0
 transformers==4.29.2

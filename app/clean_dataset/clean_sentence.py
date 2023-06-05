@@ -20,15 +20,15 @@ def clean(sentence):
     # Clean Reddit text data
     sentence=redditcleaner.clean(sentence)
 
-    #Remove unnecesary spaces
+    # Remove unnecesary spaces
     sentence=sentence.strip()
 
-    #Expand contractions
+    # Expand contractions
     sentence=contractions.fix(sentence)
 
     sentence=str(sentence)
 
-    #Remove web links
+    # Remove web links
     sentence=sentence.replace('{html}',"")
     rem_url=re.sub(r'http\S+', '',sentence)
     rx = re.compile(r'([^\W\d_])\1{2,}')

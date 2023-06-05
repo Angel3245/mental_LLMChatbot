@@ -16,6 +16,7 @@ from peft import (
     get_peft_model,
     get_peft_model_state_dict,
     PeftModel,
+    PeftConfig
 )
 
 import logging
@@ -26,24 +27,28 @@ logging.basicConfig(
     )
 
 class PeftTrainer:
-    def __init__(self, model_path, base_model, cutoff_len = 512, is_peft=False):
+    def __init__(self, model_path=None, base_model=None, cutoff_len = 512):
         device_map = "auto"
 
         self.prompter = Prompter("alpaca")
 
-        if is_peft:
+        if not model_path == None:
             # Load Peft model
+            print("Loading Peft model from disk")
+            config = PeftConfig.from_pretrained(model_path)
+
             self.model = LlamaForCausalLM.from_pretrained(
-                base_model,
+                config.base_model_name_or_path,
                 load_in_8bit=True,
                 torch_dtype=torch.float16,
                 device_map=device_map,
             )
 
             self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
-            self.tokenizer = LlamaTokenizer.from_pretrained(model_path)
+            self.tokenizer = LlamaTokenizer.from_pretrained(config.base_model_name_or_path)
         else:
             # Create Peft model from LLaMa model
+            print("Creating Peft model from LLaMa model")
             self.model = LlamaForCausalLM.from_pretrained(
                 base_model,
                 load_in_8bit=True,
@@ -106,7 +111,7 @@ class PeftTrainer:
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
 
-    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=2e-5, val_set_size=200):
+    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=1e-4, val_set_size=200):
         # split dataset into separate training and validation sets
         train_val = dataset["train"].train_test_split(
             test_size=val_set_size, shuffle=True, seed=42
@@ -120,10 +125,6 @@ class PeftTrainer:
             train_val["test"].map(self.generate_and_tokenize_prompt)
         )
 
-        # training hyperparams
-        full_batch_size = 128
-        gradient_accumulation_steps = full_batch_size // batch_size
-
         # llm hyperparams
         group_by_length = True  # faster, but produces an odd training loss curve
         
@@ -133,21 +134,21 @@ class PeftTrainer:
             per_device_train_batch_size=batch_size,  # batch size per device during training
             per_device_eval_batch_size=batch_size,   # batch size for evaluation
             learning_rate=lr,               # learning rate
-            gradient_accumulation_steps=gradient_accumulation_steps,
-            warmup_steps=10,       # number of warmup steps for learning rate scheduler
+            gradient_accumulation_steps=4,
+            #warmup_steps=10,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs
             logging_steps=1,
             save_steps=100,                  # after # steps model is saved
             evaluation_strategy='steps',
-            save_strategy="steps",
+            save_strategy="no",
             optim="adamw_torch",
             eval_steps=10,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             save_total_limit=3,
-            load_best_model_at_end=True,
             group_by_length=group_by_length,
+            report_to="tensorboard"
         )
 
         data_collator = DataCollatorForSeq2Seq(
@@ -265,8 +266,6 @@ class PeftTrainer:
         for input_text in test_inputs:
             response = self.generate_response(input_text["input"], max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, repetition_penalty=repetition_penalty)
 
-            # Create CSV with evaluation results
-            make_dirs(output_path)
             with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
                 writer = csv.writer(csv_file, delimiter=",")
                 writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])

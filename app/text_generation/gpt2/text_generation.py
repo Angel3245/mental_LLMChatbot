@@ -29,7 +29,7 @@ class GPT2Chatbot:
         self.model = self.model.eval()
 
         # Set prompt
-        prompt = self.prompter.generate_prompt(input_text)
+        prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)

@@ -30,7 +30,7 @@ if __name__ == "__main__":
         model_name = args.model
 
         test_filepath = F"{str(path)}/file/test/test_inputs.json"
-        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_name
+        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_name+"_"+args.base_model
 
         dataset = load_dataset("json", data_files=test_filepath)
         print("Test dataset:",dataset["train"])

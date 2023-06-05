@@ -28,10 +28,11 @@ class GPT2Trainer:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
         self.tokenizer.padding_side = "left" # Allow batched inference
+        #self.model.resize_token_embeddings(len(self.tokenizer))
 
         self.cutoff_len = 512
 
-        self.prompter = Prompter("mentalbot")
+        self.prompter = Prompter("chatbot_simple")
 
     def split_train_val_sets(self, df, val_set_size=200):
         """ Generate train, test and validation sets from dataframe 
@@ -79,7 +80,7 @@ class GPT2Trainer:
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
     
-    def train(self, dataset, output_dir, epochs=1, batch_size=1, lr=5e-5):
+    def train(self, dataset, output_dir, epochs=1, batch_size=4, lr=5e-5):
         train_dataset, val_dataset = self.split_train_val_sets(dataset)
 
         warmup_steps = int(len(train_dataset)*epochs/batch_size*0.1) #10% of train data
@@ -101,7 +102,6 @@ class GPT2Trainer:
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             load_best_model_at_end=True,
-            #metric_for_best_model='eval_bleu',
         )
 
         data_collator = DataCollatorForSeq2Seq(
@@ -111,7 +111,6 @@ class GPT2Trainer:
         trainer = Trainer(
             model=self.model,
             args=training_args,
-            #compute_metrics=compute_metrics,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
             data_collator=data_collator
@@ -185,9 +184,9 @@ class GPT2Trainer:
         self.model = self.model.eval()
         
         test_inputs = test_dataset["train"]
+
         # Load metrics
         bleu_metric = evaluate.load("bleu")
-        #rouge_metric = rouge_scorer.RougeScorer(['rouge1'], use_stemmer=True)
         rouge_metric = evaluate.load("rouge")
 
         # Create CSV with evaluation results
@@ -195,7 +194,6 @@ class GPT2Trainer:
         with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
             writer = csv.writer(csv_file, delimiter=",")
             writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
-            #writer.writerow(["Input","Response"])
 
         for input_text in test_inputs:
             response = self.generate_response(input_text["input"], max_length, top_p)
@@ -203,16 +201,15 @@ class GPT2Trainer:
             # Create CSV with evaluation results
             with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
                 writer = csv.writer(csv_file, delimiter=",")
-                #print("BLEU:",bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0])
-                #print("ROUGE:",rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'])
                 writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
-                #writer.writerow([input_text["input"],response])
 
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
         self.model = self.model.eval()
 
         # Set prompt
-        prompt = self.prompter.generate_prompt(input_text)
+        prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(input_text)
+
+        print(prompt)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)

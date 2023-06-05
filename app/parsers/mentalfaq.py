@@ -1,15 +1,37 @@
+import pandas as pd
+from clean_dataset import clean
+
 class MentalFAQ_Parser(object):
     """ Class for parsing & extracting data from Mental_Health_FAQ.csv """
 
-    def __init__(self):
+    def __init__(self, file_path):
+        # read data as pandas DataFrame
+        df = pd.read_csv(file_path)
+
+        df = self.prepare_data(df)
+
         self.faq_pairs = []
         self.num_faq_pairs = 0
+
+        self.extract_data(df)
         
+    def prepare_data(self, df):
+        # rename colnames Questions: question, Answers: answer
+        df = df.rename(columns={'Questions': 'input_text','Answers':'label_text'})
+
+        # drop null values
+        df.dropna(inplace=True)
+
+        # clean text
+        df['input_text']=df['input_text'].map(lambda s:clean(s))
+
+        return df
+    
     def extract_pairs(self, df, query_type):
         """ Extract qa pairs from DataFrame for a given query_type
     
         :param df: input DataFrame
-        :param query_type: faq or user_query
+        :param query_type: faq
         :return: qa pairs
         """
         qa_pairs = []
@@ -19,21 +41,11 @@ class MentalFAQ_Parser(object):
 
             for _, row in df.iterrows():
                 data = dict()
-                data["query_type"] = "faq"
+                #data["query_type"] = "faq"
                 data["prompt"] = row["input_text"]
                 data["completion"] = row["label_text"]
                 qa_pairs.append(data)
 
-        elif query_type == "user_query":
-            # select query_string, answer columns
-            df = df[['input_text', 'label_text']]
-
-            for _, row in df.iterrows():
-                data = dict()
-                data["query_type"] = "user_query"
-                data["prompt"] = row["input_text"]
-                data["completion"] = row["label_text"]
-                qa_pairs.append(data)
         else:
             raise ValueError('error, no query_type found for {}'.format(query_type))
 
@@ -44,23 +56,6 @@ class MentalFAQ_Parser(object):
                 pairs.append(pair)
 
         return pairs
-
-    def get_query_answer_pairs(self, faq_pairs):
-        """ Generate query answer pair list using faq pairs 
-        
-        :param faq_pairs: faq pairs
-        :return: query answer pairs
-        """
-        query_answer_pairs = faq_pairs
-        
-        # assign id to each query_answer_pair
-        i = 0
-        for item in query_answer_pairs:
-            i += 1
-            item.update({"id": str(i)})
-        
-        return query_answer_pairs
-
             
     def extract_data(self, df):
         """ Extract data from DataFrame

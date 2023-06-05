@@ -142,3 +142,6 @@ dmypy.json
 
 # Reddit client secrets
 /file/reddit_database/client_secrets.json
+
+#Training logs
+/logs

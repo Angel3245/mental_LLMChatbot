@@ -38,7 +38,7 @@ class BloomPeftTrainer:
                 load_in_8bit=True,
                 return_dict=True,
                 torch_dtype=torch.float16,
-                device_map="auto",
+                device_map=device_map,
             )
 
             self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
@@ -336,8 +336,6 @@ class BloomPeftTrainer:
         for input_text in test_inputs:
             response = self.generate_response(input_text["input"], max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, repetition_penalty=repetition_penalty)
 
-            # Create CSV with evaluation results
-            make_dirs(output_path)
             with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
                 writer = csv.writer(csv_file, delimiter=",")
                 writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
