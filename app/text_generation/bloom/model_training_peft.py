@@ -135,7 +135,7 @@ class BloomPeftTrainer:
             evaluation_strategy='steps',
             save_strategy="no",
             optim="adamw_torch",
-            eval_steps=1000,                  # Number of update steps between two evaluations.
+            eval_steps=20,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             report_to="tensorboard"

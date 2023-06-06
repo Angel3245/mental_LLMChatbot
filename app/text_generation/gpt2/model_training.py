@@ -32,7 +32,7 @@ class GPT2Trainer:
 
         self.cutoff_len = 512
 
-        self.prompter = Prompter("chatbot_simple")
+        self.prompter = Prompter("mentalbot")
 
     def split_train_val_sets(self, df, val_set_size=200):
         """ Generate train, test and validation sets from dataframe 
@@ -95,13 +95,13 @@ class GPT2Trainer:
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs
             logging_steps=10,
+            save_strategy="no",
             save_steps=1000,                  # after # steps model is saved
             evaluation_strategy='steps',
             optim="adamw_torch",
             eval_steps=1000,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
-            load_best_model_at_end=True,
         )
 
         data_collator = DataCollatorForSeq2Seq(
@@ -208,8 +208,6 @@ class GPT2Trainer:
 
         # Set prompt
         prompt = self.tokenizer.bos_token + self.prompter.generate_prompt(input_text)
-
-        print(prompt)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)
