@@ -18,7 +18,7 @@ class BloomPeftChatbot:
             device_map="auto",
         )
 
-        self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
+        self.model = PeftModel.from_pretrained(self.model, model_path)
 
         self.tokenizer = BloomTokenizerFast.from_pretrained(config.base_model_name_or_path)
 

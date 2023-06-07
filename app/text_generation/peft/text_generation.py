@@ -23,7 +23,7 @@ class PeftChatbot:
         self.model.config.bos_token_id = 1
         self.model.config.eos_token_id = 2
 
-        self.prompter = Prompter("alpaca")
+        self.prompter = Prompter(template)
 
         self.model = self.model.eval()
         
@@ -57,7 +57,7 @@ class PeftChatbot:
             )
 
         # Decode the response from the model back into text
-        decoded_output = self.tokenizer.decode(response.sequences[0])
+        decoded_output = self.tokenizer.decode(response.sequences[0][ : -1])
         response = self.prompter.get_response(decoded_output)
 
         return response

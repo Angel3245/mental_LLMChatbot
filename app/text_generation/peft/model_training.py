@@ -165,11 +165,6 @@ class PeftTrainer:
 
         self.model.config.use_cache = False
 
-        old_state_dict = self.model.state_dict
-        self.model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(self.model, type(self.model))
-
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
 
@@ -231,11 +226,6 @@ class PeftTrainer:
         )
 
         self.model.config.use_cache = False
-
-        old_state_dict = self.model.state_dict
-        self.model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(self.model, type(self.model))
 
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
@@ -299,7 +289,7 @@ class PeftTrainer:
             )
 
         # Decode the response from the model back into text
-        decoded_output = self.tokenizer.decode(response.sequences[0])
-        response = self.prompter.get_response(decoded_output)[ : -1]
+        decoded_output = self.tokenizer.decode(response.sequences[0][ : -1])
+        response = self.prompter.get_response(decoded_output)
 
         return response

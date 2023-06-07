@@ -21,7 +21,7 @@ if __name__ == "__main__":
     path = Path.cwd()
 
     if args.option == "ask":
-        # python app\chatbot.py -o ask -m gpt2 -t chatbot_simple
+        # python app\chatbot.py -o ask -m gpt2 -b gpt2 -t chatbot_simple
 
         model_name = args.model
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         elif(model_name == "petals"):
             chatbot = PetalsChatbot(model_path, args.template)
         elif(model_name == "peft"):
-            chatbot = PeftChatbot(model_path,args.base_model, args.template)
+            chatbot = PeftChatbot(model_path, args.template)
         else:
             raise ValueError('model ' + model_name + ' not exist')
         

@@ -38,10 +38,10 @@ class BloomPeftTrainer:
                 load_in_8bit=True,
                 return_dict=True,
                 torch_dtype=torch.float16,
-                device_map=device_map,
+                device_map={"":0},
             )
 
-            self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
+            self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16, device_map={"":0})
             self.tokenizer = BloomTokenizerFast.from_pretrained(config.base_model_name_or_path)
             
         else:
@@ -135,7 +135,7 @@ class BloomPeftTrainer:
             evaluation_strategy='steps',
             save_strategy="no",
             optim="adamw_torch",
-            eval_steps=20,                  # Number of update steps between two evaluations.
+            eval_steps=40,                  # Number of update steps between two evaluations.
             fp16=True,                       # whether to use floating point 16 for training
             fp16_opt_level="O1",             # see apex AMP optimization level for detail
             report_to="tensorboard"
@@ -154,11 +154,6 @@ class BloomPeftTrainer:
         )
 
         self.model.config.use_cache = False
-
-        old_state_dict = self.model.state_dict
-        self.model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(self.model, type(self.model))
 
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
@@ -370,6 +365,9 @@ class BloomPeftTrainer:
 
         # Decode the response from the model back into text
         decoded_output = self.tokenizer.decode(response.sequences[0][ : -1])
+
+        decoded_output = decoded_output.split("\nA:")[0]
+
         response = self.prompter.get_response(decoded_output)
 
         return response

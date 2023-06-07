@@ -49,7 +49,7 @@ if __name__ == "__main__":
         elif(model_name == "petals"):
             model = PetalsTrainer(model_path)
         elif(model_name == "peft"):
-            model = PeftTrainer(model_path, args.base_model, is_peft=True)
+            model = PeftTrainer(model_path=model_path)
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
