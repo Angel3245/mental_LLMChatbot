@@ -1,7 +1,7 @@
 from InquirerPy import inquirer
 import pandas as pd
 from faq.Mental_Health_FAQ import *
-from clean_dataset import *
+from clean_data import *
 from transformation import filter_irrelevant_posts
 
 # Disable log messages

@@ -76,6 +76,22 @@
         "output_expected": "Sorry, I did not understand you. Could you explain it better?"
     },
     { 
+        "input": "How can I improve my studying skills?",
+        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
+    },
+    { 
+        "input": "Should I study computer engineering?",
+        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
+    },
+    { 
+        "input": "I cannot afford a new laptop",
+        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
+    },
+    { 
+        "input": "Thinking in changing my look. Any advice?",
+        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
+    },
+    { 
         "input": "My finnal exam near, bt my mentall helth is geting wors. Any advise?",
         "output_expected": "Therapist here No worries There Is lot of things you can do to keep youself calm, depending on what works for you. Music therapy - youtube or spotify relaxing and calming music to help you reduce your heart rate and calm your breathing if your anxiety gets bad. Take your time with it. Journal - write down your anxious thoughts. what worries you the most, is anything else bothering you, are you catastrophizing? Talk it out - do you have a family member, friend or classmate that would be willing to listen to you vent and air your concerns? Therapy - if its within finanical reason, consider speaking to a therapist Dissociation - I love using this technique. You know that little voice in your head that tell you you will fail, there is not enough time, you will get kicked out of school, your parents will be so dissapointed etc etc? I cannot stress this enough, this voice is not you Just becuase you hear it in your head does not mean it is true. A good method for this is one of my favorites. Imagine for a moment that you are sat on a sofa, and this voice in your head saying all this negativity is another person sat with on on this couch. Listen to them talk. Listen to how they ramble on and on about all this negative stuff. Its getting tiring, annoying and frustrating. So walk away It sounds silly to some, but making this kind of distinction of \"I am ME and I am NOT my thoughts\" is an incredibly useful tool. Meditation or self hypnosis - as a hypnotherapist, i may be bias here, but hear me out Meditation and self hypnosis is an incredible tool to ease mental health and stress issues. There are many guided tools available online, you just have to find one that speaks to you I hope this helps you"
     },

@@ -1,5 +1,5 @@
 import pandas as pd
-from clean_dataset import clean
+from clean_data import clean
 
 class Reddit_Parser(object):
     """ Class for parsing & extracting data from Reddit_comments.csv & Reddit_posts.csv """

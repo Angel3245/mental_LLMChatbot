@@ -1,5 +1,5 @@
 import pandas as pd
-from clean_dataset import clean
+from clean_data import clean
 
 class MentalFAQ_Parser(object):
     """ Class for parsing & extracting data from Mental_Health_FAQ.csv """
