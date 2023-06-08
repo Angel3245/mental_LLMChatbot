@@ -107,7 +107,7 @@ class PeftTrainer:
         return result
  
     def generate_and_tokenize_prompt(self,data_point):
-        full_prompt = self.prompter.generate_prompt("Answer as a mental health expert.",data_point["prompt"],data_point["completion"])
+        full_prompt = self.prompter.generate_prompt("The following is a conversation with a mental health expert. Expert helps the User by providing emotional support, it also helps solving doubts related to mental health by providing the best option. If the expert does not know the answer to a question, it truthfully says it does not know. The expert is conversational, optimistic, flexible, empathetic, creative and humanly in generating responses.",data_point["prompt"],data_point["completion"])
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
 
@@ -265,7 +265,7 @@ class PeftTrainer:
         self.model = self.model.eval()
 
         # Set prompt
-        prompt = self.prompter.generate_prompt("Answer as a mental health expert.",input_text)
+        prompt = self.prompter.generate_prompt("The following is a conversation with a mental health expert. Expert helps the User by providing emotional support, it also helps solving doubts related to mental health by providing the best option. If the expert does not know the answer to a question, it truthfully says it does not know. The expert is conversational, optimistic, flexible, empathetic, creative and humanly in generating responses.",input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)
