@@ -61,6 +61,7 @@ class BloomPeftChatbot:
 
         # Decode the response from the model back into text
         decoded_output = self.tokenizer.decode(response.sequences[0][ : -1])
+
         response = self.prompter.get_response(decoded_output)
 
         return response

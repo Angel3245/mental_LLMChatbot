@@ -126,7 +126,7 @@ class PeftTrainer:
         )
 
         # llm hyperparams
-        group_by_length = True  # faster, but produces an odd training loss curve
+        group_by_length = False  # faster, but produces an odd training loss curve
         
         training_args = TrainingArguments(
             output_dir=output_dir,          # output directory

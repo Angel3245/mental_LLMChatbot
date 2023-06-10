@@ -45,7 +45,7 @@ if __name__ == "__main__":
         elif(model_name == "petals"):
             model = PetalsTrainer(args.base_model) #bigscience/bloom-7b1-petals
         elif(model_name == "peft"):
-            model = PeftTrainer(base_model=args.base_model) #decapoda-research/llama-7b-hf, chavinlo/alpaca-native
+            model = PeftTrainer(base_model=args.base_model) #decapoda-research/llama-7b-hf, decapoda-research/llama-13b-hf, decapoda-research/llama-30b-hf, chavinlo/alpaca-native
         else:
             raise ValueError('model ' + model_name + ' not exist')
 
