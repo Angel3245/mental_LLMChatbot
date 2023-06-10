@@ -2,15 +2,13 @@ import argparse
 import sys
 from pathlib import Path
 from shared import *
-from text_generation.gpt2 import GPT2Trainer
-from text_generation.bloom import BloomPeftTrainer
-from text_generation.peft import PeftTrainer
+#from text_generation.gpt2 import GPT2Trainer
+from text_generation.gpt3 import GPT3
+#from text_generation.bloom import BloomPeftTrainer
+#from text_generation.peft import PeftTrainer
 if sys.platform != "win32":
     from text_generation.petals import PetalsTrainer
-from transformation import *
-import pandas as pd
-from transformers import GPT2Tokenizer
-import random
+
 from datasets import load_dataset
 
 if __name__ == "__main__":
@@ -48,6 +46,9 @@ if __name__ == "__main__":
             model = BloomPeftTrainer(model_path=model_path)
         elif(model_name == "petals"):
             model = PetalsTrainer(model_path)
+        elif(model_name == "gpt3"):
+            model = GPT3(args.base_model)
+            output_path = output_path.split(":")[0]
         elif(model_name == "peft"):
             model = PeftTrainer(model_path=model_path)
         else:
