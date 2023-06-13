@@ -4,7 +4,13 @@ from transformers import GenerationConfig, BloomForCausalLM, BloomTokenizerFast
 from peft import PeftModel, PeftConfig
 from shared.prompter import Prompter
 
-class BloomPeftChatbot:
+class BloomPeftTextGenerator:
+    """ Class for creating responses from a trained BLOOM model
+
+        :param model_path: path of the trained model in disk
+        :param template: template file to create prompts
+        
+    """
     def __init__(self, model_path, template="mentalbot"):
         self.model_path = model_path
 
@@ -33,7 +39,7 @@ class BloomPeftChatbot:
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
 
-    def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=4, repetition_penalty=1.1):
+    def generate_response(self, input_text, max_new_tokens=256, temperature=0.9, top_p=0.9, repetition_penalty=1.1):
 
         # Set prompt
         prompt = self.prompter.generate_prompt(input_text)
@@ -44,8 +50,6 @@ class BloomPeftChatbot:
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
-            #top_k=top_k,
-            #num_beams=num_beams,
             repetition_penalty=repetition_penalty
         )
         

@@ -1,20 +1,12 @@
 import torch
-import os, sys, csv
-import numpy as np
-import evaluate
-from shared import make_dirs
+import os, sys
 from transformers import Trainer, TrainingArguments, GenerationConfig, LlamaForCausalLM, LlamaTokenizer, DataCollatorForSeq2Seq
-from sklearn.model_selection import train_test_split
-from rouge_score import rouge_scorer
-from train_dataset import LlamaDataset
 from shared.prompter import Prompter
-import textwrap
 
 from peft import (
     prepare_model_for_int8_training,
     LoraConfig,
     get_peft_model,
-    get_peft_model_state_dict,
     PeftModel,
     PeftConfig
 )
@@ -26,7 +18,13 @@ logging.basicConfig(
         level=logging.INFO
     )
 
-class PeftTrainer:
+class LlamaPeftTrainer:
+    """ Class for finetuning LLaMa using Parameter Efficient Fine-tuning
+
+        :param model_path: path of the trained model in disk
+        :param base_model: name of the base model
+        :param cutoff_len: max length of sentences
+    """
     def __init__(self, model_path=None, base_model=None, cutoff_len = 512):
         device_map = "auto"
 
@@ -107,7 +105,7 @@ class PeftTrainer:
         return result
  
     def generate_and_tokenize_prompt(self,data_point):
-        full_prompt = self.prompter.generate_prompt("The following is a conversation with a mental health expert. Expert helps the User by providing emotional support, it also helps solving doubts related to mental health by providing the best option. If the expert does not know the answer to a question, it truthfully says it does not know. The expert is conversational, optimistic, flexible, empathetic, creative and humanly in generating responses.",data_point["prompt"],data_point["completion"])
+        full_prompt = self.prompter.generate_prompt(data_point["prompt"],data_point["completion"])
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
 
@@ -229,43 +227,19 @@ class PeftTrainer:
 
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
-                
-        # Default objective is the sum of all metrics
-        # when metrics are provided, so we have to maximize it.
+            
         trainer.hyperparameter_search(
             direction="minimize", 
             backend="ray", 
             n_trials=10 # number of trials
         )
 
-    def evaluation(self, test_dataset, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
-
-        self.model = self.model.eval()
-
-        test_inputs = test_dataset["train"]
-        # Load metrics
-        bleu_metric = evaluate.load("bleu")
-        rouge_metric = evaluate.load("rouge")
-
-        # Create CSV with evaluation results
-        make_dirs(output_path)
-        with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
-            writer = csv.writer(csv_file, delimiter=",")
-            writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
-
-        for input_text in test_inputs:
-            response = self.generate_response(input_text["input"], max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, repetition_penalty=repetition_penalty)
-
-            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
-                writer = csv.writer(csv_file, delimiter=",")
-                writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
-    
-    def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
+    def generate_response(self, input_text, max_new_tokens=256, temperature=0.9, top_p=0.9, repetition_penalty=1.1):
 
         self.model = self.model.eval()
 
         # Set prompt
-        prompt = self.prompter.generate_prompt("The following is a conversation with a mental health expert. Expert helps the User by providing emotional support, it also helps solving doubts related to mental health by providing the best option. If the expert does not know the answer to a question, it truthfully says it does not know. The expert is conversational, optimistic, flexible, empathetic, creative and humanly in generating responses.",input_text)
+        prompt = self.prompter.generate_prompt(input_text)
 
         input_encodings = self.tokenizer(prompt, return_tensors='pt')
         input_ids = input_encodings['input_ids'].to(self.model.device)
@@ -273,8 +247,6 @@ class PeftTrainer:
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
-            #top_k=top_k,
-            #num_beams=num_beams,
             repetition_penalty=repetition_penalty
         )
         

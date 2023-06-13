@@ -16,7 +16,7 @@ class MentalFAQ_Parser(object):
         self.extract_data(df)
         
     def prepare_data(self, df):
-        # rename colnames Questions: question, Answers: answer
+        # rename colnames Questions: input_text, Answers: label_text
         df = df.rename(columns={'Questions': 'input_text','Answers':'label_text'})
 
         # drop null values

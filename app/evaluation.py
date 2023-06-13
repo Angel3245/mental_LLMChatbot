@@ -1,13 +1,14 @@
 import argparse
-import sys
+import sys, csv, evaluate
 from pathlib import Path
 from shared import *
-#from text_generation.gpt2 import GPT2Trainer
-from text_generation.gpt3 import GPT3
-#from text_generation.bloom import BloomPeftTrainer
-#from text_generation.peft import PeftTrainer
+from text_generation.model_classes import ModelDispatcher
+from text_generation.gpt3 import GPT3TextGenerator
+from text_generation.gpt2 import GPT2TextGenerator
+from text_generation.bloom import BloomTextGenerator, BloomPeftTextGenerator
+from text_generation.llama import LlamaPeftTextGenerator
 if sys.platform != "win32":
-    from text_generation.petals import PetalsTrainer
+    from text_generation.petals import PetalsTextGenerator
 
 from datasets import load_dataset
 
@@ -17,48 +18,90 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
     parser.add_argument("-m", "--model", type=str, help="select a model pretrained: gpt2, bloom, petals, peft. Default: gpt2", default='gpt2')
     parser.add_argument("-d", "--dataset", type=str, help="select a dataset. Default: MentalKnowledge", default="MentalKnowledge")
-    parser.add_argument("-t", "--template", type=str, help="select a template to create prompts. See /file/templates")
-    parser.add_argument("-b", "--base_model", type=str, help="select a model to load from huggingface")
+    #parser.add_argument("-t", "--template", type=str, help="select a template to create prompts. See /file/templates")
     args = parser.parse_args()
 
     path = Path.cwd()
 
+    # Text generator classes
+    text_generators = {
+        "gpt2": GPT2TextGenerator,
+        "bloom": BloomPeftTextGenerator,
+        #"petals": PetalsTextGenerator,
+        "llama": LlamaPeftTextGenerator
+    }
+
+    # Create CSV with results from test cases
     if args.option == "evaluate":
-        # python app\evaluation.py -o evaluate -m gpt2 -b gpt2
+        # python app\evaluation.py -o evaluate -m gpt2
+
+        # Get model_type from dispatcher
         model_name = args.model
+        model_type = ModelDispatcher.get_model_type(model_name)
 
         test_filepath = F"{str(path)}/file/test/test_inputs.json"
-        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_name+"_"+args.base_model
+        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_type+"_"+model_name
 
+        # Load test dataset
         dataset = load_dataset("json", data_files=test_filepath)
-        print("Test dataset:",dataset["train"])
+        test_inputs = dataset["train"]
+        print("Test dataset:",test_inputs)
 
         #dataset = random.sample(list(dataset), 30)
 
-        # Load model from disk
-        model_path = F"{str(path)}/output/MentalKnowledge/"+model_name+"/"+args.base_model
-        print("Loading model from",model_path)
+        # Get model text_generator class from type
+        text_generator = text_generators[model_type](model_name)
 
-        if(model_name == "gpt2"):
-            model = GPT2Trainer(model_path)
-        elif(model_name == "bloom"):
-            #model = BloomTrainer(model_path)
-            model = BloomPeftTrainer(model_path=model_path)
-        elif(model_name == "petals"):
-            model = PetalsTrainer(model_path)
-        elif(model_name == "gpt3"):
-            model = GPT3(args.base_model)
-            output_path = output_path.split(":")[0]
-        elif(model_name == "peft"):
-            model = PeftTrainer(model_path=model_path)
-        else:
-            raise ValueError('model ' + model_name + ' not exist')
+        # Load automatic metrics
+        bleu_metric = evaluate.load("bleu")
+        rouge_metric = evaluate.load("rouge")
 
-        model.evaluation(dataset, output_path)
+        # Create CSV with evaluation results
+        make_dirs(output_path)
+        with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
+            writer = csv.writer(csv_file, delimiter=",")
+            writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
+
+        for input_text in test_inputs:
+            response = text_generator.generate_response(input_text["input"])
+
+            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
+                writer = csv.writer(csv_file, delimiter=",")
+                writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
 
         print("Evaluation results dumped to",output_path)
 
+    # Test text_generation models
+    if args.option == "ask":
+        # python app\evaluation.py -o ask -m gpt2
 
-    ###
+        model_name = args.model
+
+        # Get model_type from dispatcher
+        model_type = ModelDispatcher.get_model_type(model_name)
+
+        # Load model from disk
+        model_path = F"{str(path)}/output/MentalKnowledge/"+model_type+"/"+model_name
+        print("Loading model from",model_path)
+
+        # Text generator classes
+        text_generators = {
+            "gpt2": GPT2TextGenerator,
+            "gpt3": GPT3TextGenerator,
+            "bloom": BloomPeftTextGenerator,
+            #"petals": PetalsTextGenerator,
+            "llama": LlamaPeftTextGenerator
+        }
+
+        # Get model text_generator class from type
+        text_generator = text_generators[model_type](model_path)
+
+        # Ask questions to chatbot and create responses
+        while True:
+            user_input = input("User: ")
+            if user_input.lower() == 'exit':
+                break
+            response = text_generator.generate_response(user_input)
+            print(f"Chatbot: {response}")
 
     print("PROGRAM FINISHED")

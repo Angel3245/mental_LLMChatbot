@@ -1,7 +1,5 @@
 import torch
-import os, sys, csv, copy
-import evaluate
-from shared import make_dirs
+import os, sys, copy
 from transformers import Trainer, TrainingArguments, GenerationConfig, BloomTokenizerFast, BloomForCausalLM, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
 from ray import tune
@@ -10,7 +8,6 @@ from peft import (
     prepare_model_for_int8_training,
     LoraConfig,
     get_peft_model,
-    get_peft_model_state_dict,
     PeftModel,
     PeftConfig
 )
@@ -23,10 +20,17 @@ logging.basicConfig(
     )
 
 class BloomPeftTrainer:
-    def __init__(self, model_path=None, base_model=None, cutoff_len = 512):
+    """ Class for finetuning BLOOM using Parameter Efficient Fine-tuning
+
+        :param model_path: path of the trained model in disk
+        :param base_model: name of the base model
+        :param cutoff_len: max length of sentences
+        :param template: template file to use to create prompts
+    """
+    def __init__(self, model_path=None, base_model=None, cutoff_len = 512, template = "mentalbot"):
         device_map = "auto"
 
-        self.prompter = Prompter("mentalbot")
+        self.prompter = Prompter(template)
 
         if not model_path == None:
             # Load Peft model
@@ -169,76 +173,7 @@ class BloomPeftTrainer:
         self.model.save_pretrained(output_dir)
         self.tokenizer.save_pretrained(output_dir)
 
-    def hyperparameter_search(self, dataset, epochs=2, batch_size=4, lr=2e-4, val_set_size=200):
-        # split dataset into separate training and validation sets
-        train_val = dataset["train"].train_test_split(
-            test_size=val_set_size, shuffle=True, seed=42
-        )
-
-        # create prompts from the loaded dataset and tokenize them
-        train_dataset = (
-            train_val["train"].map(self.generate_and_tokenize_prompt)
-        )
-        val_dataset = (
-            train_val["test"].map(self.generate_and_tokenize_prompt)
-        )
-
-        # training hyperparams
-        full_batch_size = 128
-        gradient_accumulation_steps = full_batch_size // batch_size
-        
-        training_args = TrainingArguments(
-            output_dir='./logs',          # output directory
-            num_train_epochs=epochs,         # total number of training epochs
-            per_device_train_batch_size=batch_size,  # batch size per device during training
-            per_device_eval_batch_size=batch_size,   # batch size for evaluation
-            learning_rate=lr,               # learning rate
-            gradient_accumulation_steps=gradient_accumulation_steps,
-            #warmup_steps=10,       # number of warmup steps for learning rate scheduler
-            #weight_decay=0.01,              # strength of weight decay
-            logging_dir='./logs',            # directory for storing logs
-            logging_steps=10,
-            save_steps=1000,                  # after # steps model is saved
-            evaluation_strategy='steps',
-            save_strategy="no",
-            optim="adamw_torch",
-            eval_steps=1000,                  # Number of update steps between two evaluations.
-            fp16=True,                       # whether to use floating point 16 for training
-            fp16_opt_level="O1",             # see apex AMP optimization level for detail
-            report_to="tensorboard"
-        )
-
-        data_collator = DataCollatorForSeq2Seq(
-            self.tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
-        )
-        
-        trainer = Trainer(
-            model=self.model,
-            args=training_args,
-            data_collator=data_collator,
-            train_dataset=train_dataset,
-            eval_dataset=val_dataset,
-        )
-
-        self.model.config.use_cache = False
-
-        old_state_dict = self.model.state_dict
-        self.model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(self.model, type(self.model))
-
-        if torch.__version__ >= "2" and sys.platform != "win32":
-            self.model = torch.compile(self.model)
-                
-        train_result = trainer.train()
-
-        metrics = train_result.metrics
-        trainer.log_metrics("train", metrics)
-
-        print(metrics, file=open('output.txt', 'a'))
-
-
-    def hyperparameter_search_ray(self, dataset):   
+    def hyperparameter_search(self, dataset):   
         # split dataset into separate training and validation sets
         train_val = dataset["train"].train_test_split(
             test_size=200, shuffle=True, seed=42
@@ -253,7 +188,7 @@ class BloomPeftTrainer:
         )
 
         # llm hyperparams
-        group_by_length = True  # faster, but produces an odd training loss curve
+        group_by_length = False  # faster, but produces an odd training loss curve
         
         training_args = TrainingArguments(
             #warmup_steps=10,       # number of warmup steps for learning rate scheduler
@@ -287,17 +222,12 @@ class BloomPeftTrainer:
 
         self.model.config.use_cache = False
 
-        old_state_dict = self.model.state_dict
-        self.model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(self.model, type(self.model))
-
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
                 
         def my_hp_space(trial):
             return {
-                "learning_rate": tune.loguniform(1e-6, 1e-4),
+                "learning_rate": tune.loguniform(1e-6, 1e-3),
                 "num_train_epochs": tune.choice([1, 2, 3]),
                 "per_device_train_batch_size": tune.choice([2, 4, 8])
             }
@@ -313,29 +243,7 @@ class BloomPeftTrainer:
 
         print(best_run)
 
-    def evaluation(self, test_dataset, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
-
-        self.model = self.model.eval()
-
-        test_inputs = test_dataset["train"]
-        # Load metrics
-        bleu_metric = evaluate.load("bleu")
-        rouge_metric = evaluate.load("rouge")
-
-        # Create CSV with evaluation results
-        make_dirs(output_path)
-        with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
-            writer = csv.writer(csv_file, delimiter=",")
-            writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
-
-        for input_text in test_inputs:
-            response = self.generate_response(input_text["input"], max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, repetition_penalty=repetition_penalty)
-
-            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
-                writer = csv.writer(csv_file, delimiter=",")
-                writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
-    
-    def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, repetition_penalty=1.1):
+    def generate_response(self, input_text, max_new_tokens=256, temperature=0.9, top_p=0.9, repetition_penalty=1.1):
 
         self.model = self.model.eval()
 
@@ -348,8 +256,6 @@ class BloomPeftTrainer:
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
-            #top_k=top_k,
-            #num_beams=num_beams,
             repetition_penalty=repetition_penalty
         )
         
@@ -365,8 +271,6 @@ class BloomPeftTrainer:
 
         # Decode the response from the model back into text
         decoded_output = self.tokenizer.decode(response.sequences[0][ : -1])
-
-        decoded_output = decoded_output.split("\nA:")[0]
 
         response = self.prompter.get_response(decoded_output)
 

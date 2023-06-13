@@ -1,60 +1,57 @@
 import argparse
 import sys
 from pathlib import Path
-from text_generation.gpt2 import GPT2Chatbot
-from text_generation.bloom import BloomChatbot, BloomPeftChatbot
-from text_generation.peft import PeftChatbot
+from text_generation.model_classes import ModelDispatcher
+from shared import *
+from text_generation.gpt2 import GPT2TextGenerator
+from text_generation.gpt3 import GPT3TextGenerator
+from text_generation.bloom import BloomTextGenerator, BloomPeftTextGenerator
+from text_generation.llama import LlamaPeftTextGenerator
 if sys.platform != "win32":
-    from text_generation.petals import PetalsChatbot
+    from text_generation.petals import PetalsTextGenerator
 from clean_data import clean_sentence
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
+    parser.add_argument("-o", "--option", type=str, help="select an option", default="cli")
     parser.add_argument("-m", "--model", type=str, help="select a model pretrained: gpt2, bloom, petals, peft. Default: gpt2", default='gpt2')
     parser.add_argument("-d", "--dataset", type=str, help="select a dataset. Default: MentalKnowledge", default="MentalKnowledge")
-    parser.add_argument("-t", "--template", type=str, help="select a template to create prompts. See /file/templates")
-    parser.add_argument("-b", "--base_model", type=str, help="select a model to load from huggingface")
+    #parser.add_argument("-t", "--template", type=str, help="select a template file to create prompts. See /file/templates")
     args = parser.parse_args()
 
     path = Path.cwd()
 
-    if args.option == "ask":
-        # python app\chatbot.py -o ask -m gpt2 -b gpt2 -t chatbot_simple
+    if args.option == "cli":
+        # python app\chatbot.py -o ask -m gpt2
 
         model_name = args.model
 
+        # Get model_type from dispatcher
+        model_type = ModelDispatcher.get_model_type(model_name)
+
         # Load model from disk
-        model_path = F"{str(path)}/output/MentalKnowledge/"+model_name+"/"+args.base_model
+        model_path = F"{str(path)}/output/MentalKnowledge/"+model_type+"/"+model_name
         print("Loading model from",model_path)
 
-        if(model_name == "gpt2"):
-            chatbot = GPT2Chatbot(model_path, args.template)
-        elif(model_name == "bloom"):
-            #chatbot = BloomChatbot(model_path, args.template)
-            chatbot = BloomPeftChatbot(model_path, args.template)
-        elif(model_name == "petals"):
-            chatbot = PetalsChatbot(model_path, args.template)
-        elif(model_name == "peft"):
-            chatbot = PeftChatbot(model_path, args.template)
-        else:
-            raise ValueError('model ' + model_name + ' not exist')
-        
-        #chatbot = Chatbot("gpt2")
+        # Text generator classes
+        text_generators = {
+            "gpt2": GPT2TextGenerator,
+            "gpt3": GPT3TextGenerator,
+            "bloom": BloomPeftTextGenerator,
+            #"petals": PetalsTextGenerator,
+            "llama": LlamaPeftTextGenerator
+        }
+
+        # Get model text_generator class from type
+        text_generator = text_generators[model_type](model_path)
 
         # Ask questions to chatbot and create responses
         while True:
-            user_input = input("Usuario: ")
-            if user_input.lower() == 'salir':
+            user_input = input("User: ")
+            if user_input.lower() == 'exit':
                 break
-            response = chatbot.generate_response(user_input)
+            response = text_generator.generate_response(user_input)
             print(f"Chatbot: {response}")
-
-    if args.option == "gui":
-        # python app\chatbot.py -o gui
-        dataset = F"{str(path)}/file/datasets/Reddit_posts.csv"
-
-        #ask_sentence(dataset)
 
     print("PROGRAM FINISHED")

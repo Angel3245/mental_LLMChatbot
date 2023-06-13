@@ -1,10 +1,12 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
 
 class Post(Base):
+    """ ORM entity for Reddit Post
+    """
 
     __tablename__ = 'Post'
 

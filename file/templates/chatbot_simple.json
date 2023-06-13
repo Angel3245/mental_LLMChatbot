@@ -1,7 +1,6 @@
 {
-    "description": "Template simple for a Chatbot.",
-    "prompt_input": "###{instruction}\n\n### User:\n{input}\n\n### Bot:\n",
-    "prompt_no_input": "### User:\n{instruction}\n\n### Bot:\n",
+    "description": "Template simple for a conversation.",
+    "prompt": "### User:\n{input}\n\n### Bot:\n",
     "response_split": "### Bot:",
     "stop_sequence": "###"
 }

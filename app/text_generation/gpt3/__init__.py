@@ -1,1 +1,1 @@
-from .text_generation import GPT3
+from .text_generation import GPT3TextGenerator

@@ -3,7 +3,13 @@ from transformers import GenerationConfig
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from shared.prompter import Prompter
 
-class GPT2Chatbot:
+class GPT2TextGenerator:
+    """ Class for creating responses from a trained GPT2 model
+
+        :param model_path: path of the trained model in disk
+        :param template: template file to create prompts
+        
+    """
     def __init__(self, model_path, template="mentalbot"):
         self.model_path = model_path
 

@@ -3,7 +3,6 @@ import praw
 from pathlib import Path
 import random
 import socket
-import sys
 
 def refresh_token():
     """Provide the program's entry point when directly executed."""

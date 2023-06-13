@@ -3,7 +3,13 @@ from transformers import GenerationConfig
 from transformers import BloomTokenizerFast, BloomForCausalLM
 from shared.prompter import Prompter
 
-class BloomChatbot:
+class BloomTextGenerator:
+    """ Class for creating responses from a trained BLOOM model
+
+        :param model_path: path of the trained model in disk
+        :param template: template file to create prompts
+        
+    """
     def __init__(self, model_path, template="mentalbot"):
         self.model_path = model_path
 

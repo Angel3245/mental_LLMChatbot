@@ -1,7 +1,6 @@
 {
     "description": "Template used by bigscience-workshop/Petals.",
-    "prompt_input": "{instruction}\n-----\n{input}\n-----\n",
-    "prompt_no_input": "{instruction}\n-----\n",
+    "prompt": "{input}\n-----\n",
     "response_split": "\n-----\n",
     "stop_sequence": "\n-----\n"
 }

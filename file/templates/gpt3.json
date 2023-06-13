@@ -1,7 +1,6 @@
 {
     "description": "Template for a Mental health expert Chatbot for GPT3 API.",
-    "prompt_input": "{instruction} ->",
-    "prompt_no_input": "{instruction} ->",
+    "prompt": "{input} ->",
     "response_split": "->",
     "stop_sequence": " END"
 }

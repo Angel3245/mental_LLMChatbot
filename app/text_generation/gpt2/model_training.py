@@ -1,9 +1,6 @@
 import torch
-import sys, csv
-import numpy as np
-import evaluate
+import sys
 from transformers import Trainer, TrainingArguments
-from sklearn.model_selection import train_test_split
 from rouge_score import rouge_scorer
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
@@ -18,7 +15,12 @@ logging.basicConfig(
     )
 
 class GPT2Trainer:
-    def __init__(self, model_name_or_path):
+    """ Class for finetuning GPT2 using Full Fine-tuning
+
+        :param model_name_or_path: name or path of the model to load
+        :param cutoff_len: max length of sentences
+    """
+    def __init__(self, model_name_or_path, cutoff_len = 512):
         self.model_name_or_path = model_name_or_path
 
         self.model = GPT2LMHeadModel.from_pretrained(model_name_or_path)
@@ -30,7 +32,7 @@ class GPT2Trainer:
         self.tokenizer.padding_side = "left" # Allow batched inference
         #self.model.resize_token_embeddings(len(self.tokenizer))
 
-        self.cutoff_len = 512
+        self.cutoff_len = cutoff_len
 
         self.prompter = Prompter("mentalbot")
 
@@ -165,7 +167,7 @@ class GPT2Trainer:
                 
         def my_hp_space(trial):
             return {
-                "learning_rate": tune.choice([5e-5, 2e-5, 2e-4]),
+                "learning_rate": tune.loguniform(1e-6, 1e-3),
                 "num_train_epochs": tune.choice([1, 2, 3]),
                 "per_device_train_batch_size": tune.choice([2, 4, 8])
             }
@@ -179,29 +181,6 @@ class GPT2Trainer:
         )
 
         print(best_run)
-
-    def evaluation(self, test_dataset, output_path, max_length=1000, top_p=0.9):
-        self.model = self.model.eval()
-        
-        test_inputs = test_dataset["train"]
-
-        # Load metrics
-        bleu_metric = evaluate.load("bleu")
-        rouge_metric = evaluate.load("rouge")
-
-        # Create CSV with evaluation results
-        make_dirs(output_path)
-        with open(output_path+"/evaluation.csv", 'w', encoding="UTF8") as csv_file:
-            writer = csv.writer(csv_file, delimiter=",")
-            writer.writerow(["Input","Response","Bleu-1","Rouge-1"])
-
-        for input_text in test_inputs:
-            response = self.generate_response(input_text["input"], max_length, top_p)
-
-            # Create CSV with evaluation results
-            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
-                writer = csv.writer(csv_file, delimiter=",")
-                writer.writerow([input_text["input"],response, round(bleu_metric.compute(predictions=[response],references=[input_text["output_expected"]])['precisions'][0] ,2), round(rouge_metric.compute(predictions=[response],references=[input_text["output_expected"]])['rouge1'] ,2)])
 
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
         self.model = self.model.eval()

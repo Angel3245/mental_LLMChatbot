@@ -1,3 +1,3 @@
 import torch
 
-print(torch.cuda.is_available())
+print("CUDA AVAILABILITY:",torch.cuda.is_available())

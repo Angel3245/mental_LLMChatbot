@@ -4,6 +4,8 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 class User(Base):
+    """ ORM entity for Reddit User
+    """
 
     __tablename__ = 'User'
 

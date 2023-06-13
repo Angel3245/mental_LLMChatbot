@@ -16,6 +16,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     path = Path.cwd()
 
+    # Search by flair in Reddit subreddits
     if args.option == "extraction_search_by_flair":
         # python app\reddit_scripts.py -o extraction_search_by_flair -s Anxiety -d reddit
         flairs = [str(item) for item in args.flair.split(',')]
@@ -23,15 +24,17 @@ if __name__ == '__main__':
         session = database_connect(args.database)
         extract_data(session, args.subreddit, "search_by_flair", flairs)
 
+    # Create refresh token for Reddit extraction
     if args.option == "refresh_token":
         # python app\reddit_scripts.py -o refresh_token
         refresh_token()
 
-    # Create csv from data in DB
+    # Create csv from data in Reddit DB
     if args.option == "create_csv_from_DB":
         # python app\reddit_scripts.py -o create_csv_reddit -d reddit
         session = database_connect(args.database)
 
+        # POSTS
         outfile = open(F"{str(path)}/file/datasets/Reddit_posts.csv", 'w', encoding='utf-8')
         outcsv = csv.writer(outfile)
         records = session.query(Post).all()
@@ -45,6 +48,7 @@ if __name__ == '__main__':
 
         outfile.close()
 
+        # COMMENTS
         outfile = open(F"{str(path)}/file/datasets/Reddit_comments.csv", 'w', encoding='utf-8')
         outcsv = csv.writer(outfile)
         records = session.query(Comment).all()
@@ -57,3 +61,5 @@ if __name__ == '__main__':
                              item.stickied, item.ups, item.permalink, item.parent_id])
 
         outfile.close()
+
+    print("PROGRAM FINISHED")

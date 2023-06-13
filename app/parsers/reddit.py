@@ -86,7 +86,7 @@ class Reddit_Parser(object):
         """ Extract qa pairs from DataFrame for a given query_type
     
         :param df: input DataFrame
-        :param query_type: faq or user_query
+        :param query_type: faq or support
         :return: qa pairs
         """
         qa_pairs = []

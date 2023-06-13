@@ -5,8 +5,7 @@ Base = declarative_base()
 
 
 class Subreddit(Base):
-    """
-    Representa un subreddit.
+    """ ORM entity for Reddit Subreddit
     """
 
     __tablename__ = 'Subreddit'

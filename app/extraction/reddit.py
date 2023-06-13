@@ -6,10 +6,18 @@ import time
 from model import Post, User, Comment, Subreddit
 
 def extract_data(session, subreddit_name: str, type_query: str, query = ""):
+    """ Extract data from a subreddit for a given query
+    
+        :param session: input SQLAlchemy database session to store data
+        :param subreddit_name: input subreddit name
+        :param type_query: search type (search_by_flair)
+        :param query: search condition (flairs)
+    """
 
     path = Path.cwd()
 
-    with open(f"{str(path)}/files/client_secrets.json") as json_file:
+    # Load Reddit credentials
+    with open(f"{str(path)}/file/reddit/client_secrets.json") as json_file:
         data = json.load(json_file)
 
     reddit = praw.Reddit(client_id= data['client_id'],
@@ -37,6 +45,7 @@ def extract_data(session, subreddit_name: str, type_query: str, query = ""):
 
     print(f"Extraction subreddit {subreddit_name}")
 
+    # Search by flair
     if type_query == "search_by_flair":
         for q in query:
             print(f"Extraction flair: {q}")
@@ -50,7 +59,7 @@ def extract_data(session, subreddit_name: str, type_query: str, query = ""):
                             if hasattr(submission.author, 'id'):
                                 _comprobe_user(session, submission.author.id, submission.author)
 
-
+                                # ------- POSTS ----------------------
                                 post = Post()
                                 post_created_utc = datetime.utcfromtimestamp(submission.created_utc).strftime('%Y-%m-%d %H:%M:%S')
                                 post.load_data(submission.id, submission.name, submission.author.id, submission.subreddit_id,

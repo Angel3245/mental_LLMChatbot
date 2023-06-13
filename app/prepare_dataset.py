@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
-    parser.add_argument("-d", "--dataset", type=str, help="select a dataset name", default="MentalFAQ")
+    parser.add_argument("-d", "--dataset", type=str, help="select a dataset name", default="MentalKnowledge")
 
     args = parser.parse_args()
 
@@ -22,6 +22,7 @@ if __name__ == "__main__":
             comments_path = F"{str(path)}/file/datasets/Reddit_comments.csv"
             output_path = F"{str(path)}/file/data/"+args.dataset
 
+            # Create dataset applying transformation on input data 
             dataset_processed = create_dataset(file_path, posts_path, comments_path)
 
             # Dump data to json file
@@ -30,6 +31,6 @@ if __name__ == "__main__":
 
             print("Dataset",args.dataset, "created.")
         else:
-            print("Dataset not selected")
+            raise ValueError("Dataset not selected")
 
     
