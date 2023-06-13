@@ -44,7 +44,7 @@ if __name__ == "__main__":
         model_name = args.model
         model_type = ModelDispatcher.get_model_type(model_name)
         
-        output_path = F"{str(path)}/output/MentalKnowledge/"+model_type+"/"+model_name
+        output_path = F"{str(path)}/output/"+args.dataset+"/"+model_type+"/"+model_name
 
         # Get model trainer class from type
         model = trainers[model_type](model_name)

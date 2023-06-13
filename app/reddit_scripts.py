@@ -10,10 +10,10 @@ if __name__ == '__main__':
                     description='Get and convert data from Reddit',
                     epilog='Jose Angel Perez Garrido - 2023')
 
-    parser.add_argument("-o", "--option", type=str, help="select an option: extraction_search_by_flair -> get data from Reddit searching by flair; refresh_token -> get refresh token; create_csv_from_DB -> create csv datasets from Reddit data in DB")
-    parser.add_argument("-s", "--subreddit", type=str, help="name of subreddit", required=True)
-    parser.add_argument("-d", "--database", type=str, help="name of database", required=True)
-    parser.add_argument("-f", "--flairs", type=str, help="flairs to search separated by commas", required=True)
+    parser.add_argument("-o", "--option", type=str, help="select an option: extraction_search_by_flair -> get data from Reddit searching by flair; refresh_token -> get refresh token; create_reddit_csv -> create csv datasets from Reddit data in DB")
+    parser.add_argument("-s", "--subreddit", type=str, help="name of subreddit")
+    parser.add_argument("-d", "--database", type=str, help="name of database")
+    parser.add_argument("-f", "--flairs", type=str, help="flairs to search separated by commas")
 
     args = parser.parse_args()
     path = Path.cwd()
@@ -32,8 +32,8 @@ if __name__ == '__main__':
         refresh_token()
 
     # Create csv from data in Reddit DB
-    if args.option == "create_csv_from_DB":
-        # python app\reddit_scripts.py -o create_csv_reddit -d reddit
+    if args.option == "create_reddit_csv":
+        # python app\reddit_scripts.py -o create_reddit_csv -d reddit
         session = database_connect(args.database)
 
         # POSTS
