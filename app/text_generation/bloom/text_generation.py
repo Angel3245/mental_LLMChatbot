@@ -8,12 +8,12 @@ class BloomTextGenerator:
 
         :param model_path: path of the trained model in disk
         :param template: template file to create prompts
-        
+        :param cutoff_len: max length of sentences
     """
-    def __init__(self, model_path, template="mentalbot"):
+    def __init__(self, model_path, template="mentalbot", cutoff_len = 512):
         self.model_path = model_path
 
-        self.cutoff_len = 512
+        self.cutoff_len = cutoff_len
 
         self.prompter = Prompter(template)
 

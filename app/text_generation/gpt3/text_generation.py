@@ -6,10 +6,13 @@ class GPT3TextGenerator:
 
         :param base_model: name of the model
         :param template: template file to create prompts
+        :param cutoff_len: max length of sentences
         
     """
-    def __init__(self, model, template="mentalbot"):
+    def __init__(self, model, template="mentalbot", cutoff_len = 128):
         self.model = model
+
+        self.cutoff_len = cutoff_len
 
         self.prompter = Prompter(template)
 
@@ -21,6 +24,6 @@ class GPT3TextGenerator:
             model=self.model,
             prompt=prompt,
             stop=["User:", "Expert:", " END"],
-            max_tokens=128)
+            max_tokens=self.cutoff_len)
         
         return response['choices'][0]['text'].strip()
