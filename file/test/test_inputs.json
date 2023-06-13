@@ -76,19 +76,7 @@
         "output_expected": "Sorry, I did not understand you. Could you explain it better?"
     },
     { 
-        "input": "How can I improve my studying skills?",
-        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
-    },
-    { 
         "input": "Should I study computer engineering?",
-        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
-    },
-    { 
-        "input": "I cannot afford a new laptop",
-        "output_expected": "Sorry, I did not understand you. Could you explain it better?"
-    },
-    { 
-        "input": "Thinking in changing my look. Any advice?",
         "output_expected": "Sorry, I did not understand you. Could you explain it better?"
     },
     { 
