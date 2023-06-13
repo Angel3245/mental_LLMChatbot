@@ -3,7 +3,11 @@ from pathlib import Path
 from shared import *
 from text_generation.bloom import BloomPeftTextGenerator
 
-from clean_data import clean
+from view import ask_chatbot
+
+# Disable log messages
+import logging
+logging.disable(logging.ERROR)
 
 if __name__ == "__main__":
 
@@ -29,21 +33,6 @@ if __name__ == "__main__":
         text_generator = BloomPeftTextGenerator(model_path)
 
         # Ask questions to chatbot and create responses
-        while True:
-            user_input = input("User: ")
-            if user_input.lower() == 'exit':
-                break
-
-            # Clean input sentence
-            user_input = clean(user_input)
-
-            # Analyze input and create predefined responses if needed
-            # Check if user_input words are higher than 3
-            if(len(user_input.split()) < 3):
-                response = "Sorry, I did not understand you. Could you explain it better?"
-            else:
-                response = text_generator.generate_response(user_input)
-            
-            print(f"Chatbot: {response}")
+        ask_chatbot(text_generator)
 
     print("PROGRAM FINISHED")

@@ -1,1 +1,1 @@
-from .gui import ask_sentence
+from .cli import ask_chatbot
