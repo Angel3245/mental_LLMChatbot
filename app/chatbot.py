@@ -13,10 +13,12 @@ from clean_data import clean_sentence
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--option", type=str, help="select an option", default="cli")
-    parser.add_argument("-m", "--model", type=str, help="select a model pretrained: gpt2, bloom, petals, peft. Default: gpt2", default='gpt2')
-    parser.add_argument("-d", "--dataset", type=str, help="select a dataset. Default: MentalKnowledge", default="MentalKnowledge")
+    parser = argparse.ArgumentParser(prog='Chatbot',
+                    description='Run a chatbot using a LLM',
+                    epilog='Jose Angel Perez Garrido - 2023')
+    parser.add_argument("-o", "--option", type=str, help="select an option: cli -> run a chatbot in command line view. (default: cli)", default="cli")
+    parser.add_argument("-m", "--model", type=str, help="select a pretrained model to load. Supported models: "+str(ModelDispatcher.get_supported_types())+" (default: gpt2)", default='gpt2')
+    parser.add_argument("-d", "--dataset", type=str, help="select a dataset. (default: MentalKnowledge)", default="MentalKnowledge")
     #parser.add_argument("-t", "--template", type=str, help="select a template file to create prompts. See /file/templates")
     args = parser.parse_args()
 

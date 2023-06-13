@@ -15,3 +15,6 @@ class ModelDispatcher:
             raise ValueError('model ' + model_name + ' not supported')
         
         return model_type
+    
+    def get_supported_types():
+        return [item for list in model_types.values() for item in list] 

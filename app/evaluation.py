@@ -14,10 +14,12 @@ from datasets import load_dataset
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
-    parser.add_argument("-m", "--model", type=str, help="select a model pretrained: gpt2, bloom, petals, peft. Default: gpt2", default='gpt2')
-    parser.add_argument("-d", "--dataset", type=str, help="select a dataset. Default: MentalKnowledge", default="MentalKnowledge")
+    parser = argparse.ArgumentParser(prog='Evaluation',
+                    description='Evaluate the results of a LLM',
+                    epilog='Jose Angel Perez Garrido - 2023')
+    parser.add_argument("-o", "--option", type=str, help="select an option: evaluate -> test LLM using a test dataset; ask -> test LLM asking questions", required=True)
+    parser.add_argument("-m", "--model", type=str, help="select a pretrained model to load. Supported models: "+str(ModelDispatcher.get_supported_types())+" (default: gpt2)", default='gpt2')
+    parser.add_argument("-d", "--dataset", type=str, help="select a dataset. (default: MentalKnowledge)", default="MentalKnowledge")
     #parser.add_argument("-t", "--template", type=str, help="select a template to create prompts. See /file/templates")
     args = parser.parse_args()
 
@@ -40,7 +42,7 @@ if __name__ == "__main__":
         model_type = ModelDispatcher.get_model_type(model_name)
 
         test_filepath = F"{str(path)}/file/test/test_inputs.json"
-        output_path = F"{str(path)}/file/evaluation/MentalKnowledge/"+model_type+"_"+model_name
+        output_path = F"{str(path)}/file/evaluation/"+args.dataset+"/"+model_type+"_"+model_name
 
         # Load test dataset
         dataset = load_dataset("json", data_files=test_filepath)
@@ -81,7 +83,7 @@ if __name__ == "__main__":
         model_type = ModelDispatcher.get_model_type(model_name)
 
         # Load model from disk
-        model_path = F"{str(path)}/output/MentalKnowledge/"+model_type+"/"+model_name
+        model_path = F"{str(path)}/output/"+args.dataset+"/"+model_type+"/"+model_name
         print("Loading model from",model_path)
 
         # Text generator classes

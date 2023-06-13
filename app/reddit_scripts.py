@@ -6,9 +6,11 @@ from pathlib import Path
 from model import *
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='Reddit scripts',
+                    description='Get and convert data from Reddit',
+                    epilog='Jose Angel Perez Garrido - 2023')
 
-    parser.add_argument("-o", "--option", type=str, help="select an option")
+    parser.add_argument("-o", "--option", type=str, help="select an option: extraction_search_by_flair -> get data from Reddit searching by flair; refresh_token -> get refresh token; create_csv_from_DB -> create csv datasets from Reddit data in DB")
     parser.add_argument("-s", "--subreddit", type=str, help="name of subreddit", required=True)
     parser.add_argument("-d", "--database", type=str, help="name of database", required=True)
     parser.add_argument("-f", "--flairs", type=str, help="flairs to search separated by commas", required=True)

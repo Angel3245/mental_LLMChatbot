@@ -12,10 +12,12 @@ from datasets import load_dataset
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--option", type=str, help="select an option", required=True)
-    parser.add_argument("-m", "--model", type=str, help="select a model name to load", default='gpt2', required=True)
-    parser.add_argument("-d", "--dataset", type=str, help="select a dataset", default="MentalKnowledge")
+    parser = argparse.ArgumentParser(prog='Training',
+                    description='Train a pretrained model',
+                    epilog='Jose Angel Perez Garrido - 2023')
+    parser.add_argument("-o", "--option", type=str, help="select an option: finetune_model -> Train a language model using a Trainer; hyperparameter_search -> Search best hyperparameters using Ray Tune", required=True)
+    parser.add_argument("-m", "--model", type=str, help="select a pretrained model to load. Supported models: "+str(ModelDispatcher.get_supported_types()), required=True)
+    parser.add_argument("-d", "--dataset", type=str, help="select a dataset. (default: MentalKnowledge)", default="MentalKnowledge")
 
     args = parser.parse_args()
 
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         print("What is depression?")
         print(model.generate_response("What is depression?"))
 
-    # Search hyperparameters using Ray Tune
+    # Search best hyperparameters using Ray Tune
     if args.option == "hyperparameter_search":
         # python app\training.py -o hyperparameter_search -m gpt2
         dataset_filepath = F"{str(path)}/file/data/"+args.dataset+"/input_label_pairs.json"
