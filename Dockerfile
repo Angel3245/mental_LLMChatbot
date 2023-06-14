@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.3.1-devel-ubuntu20.04
+FROM nvidia/cuda:11.7.0-devel-ubuntu20.04
 
 RUN mkdir chatbot
 RUN mkdir chatbot/file
@@ -11,6 +11,6 @@ RUN apt update && apt upgrade -y
 RUN apt install python3-pip -y
 RUN pip install --upgrade pip
 RUN pip install -r chatbot/requirements.txt
-RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 
 WORKDIR /chatbot
