@@ -43,6 +43,8 @@ if __name__ == "__main__":
         # Get model_type from dispatcher
         model_name = args.model
         model_type = ModelDispatcher.get_model_type(model_name)
+
+        print("Training a",model_type,"model")
         
         output_path = F"{str(path)}/output/"+args.dataset+"/"+model_type+"/"+model_name
 
@@ -52,7 +54,10 @@ if __name__ == "__main__":
         # Train model with input dataset
         model.train(dataset, output_path)
 
+        print("Model trained saved to",output_path)
+
         # Test inputs
+        print("\nTest inputs:\n")
         print("Where can I find self help materials for anxiety?")
         print(model.generate_response("Where can I find self help materials for anxiety?"))
         print("What is depression?")

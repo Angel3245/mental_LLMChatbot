@@ -7,9 +7,7 @@ from ray import tune
 from peft import (
     prepare_model_for_int8_training,
     LoraConfig,
-    get_peft_model,
-    PeftModel,
-    PeftConfig
+    get_peft_model
 )
 
 import logging
@@ -22,60 +20,44 @@ logging.basicConfig(
 class LlamaPeftTrainer:
     """ Class for finetuning LLaMa using Parameter Efficient Fine-tuning
 
-        :param model_path: path of the trained model in disk
         :param base_model: name of the base model
         :param cutoff_len: max length of sentences
     """
-    def __init__(self, model_path=None, base_model=None, cutoff_len = 512):
+    def __init__(self, base_model=None, cutoff_len = 512):
         device_map = "auto"
 
         self.prompter = Prompter("alpaca")
 
-        if not model_path == None:
-            # Load Peft model
-            print("Loading Peft weights from disk")
-            config = PeftConfig.from_pretrained(model_path)
+        # Create Peft model from LLaMa model
+        print("Creating Peft model from LLaMa model")
+        self.model = LlamaForCausalLM.from_pretrained(
+            base_model,
+            load_in_8bit=True,
+            torch_dtype=torch.float16,
+            device_map=device_map,
+        )
 
-            self.model = LlamaForCausalLM.from_pretrained(
-                config.base_model_name_or_path,
-                load_in_8bit=True,
-                torch_dtype=torch.float16,
-                device_map=device_map,
-            )
+        self.model = prepare_model_for_int8_training(self.model)
 
-            self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16)
-            self.tokenizer = LlamaTokenizer.from_pretrained(config.base_model_name_or_path)
-        else:
-            # Create Peft model from LLaMa model
-            print("Creating Peft model from LLaMa model")
-            self.model = LlamaForCausalLM.from_pretrained(
-                base_model,
-                load_in_8bit=True,
-                torch_dtype=torch.float16,
-                device_map=device_map,
-            )
+        # lora hyperparams
+        lora_r = 8
+        lora_alpha = 16
+        lora_dropout = 0.05
+        lora_target_modules = [
+            "q_proj",
+            "v_proj",
+        ]
 
-            self.model = prepare_model_for_int8_training(self.model)
-
-            # lora hyperparams
-            lora_r = 8
-            lora_alpha = 16
-            lora_dropout = 0.05
-            lora_target_modules = [
-                "q_proj",
-                "v_proj",
-            ]
-
-            config = LoraConfig(
-                r=lora_r,
-                lora_alpha=lora_alpha,
-                target_modules=lora_target_modules,
-                lora_dropout=lora_dropout,
-                bias="none",
-                task_type="CAUSAL_LM",
-            )
-            self.model = get_peft_model(self.model, config)
-            self.tokenizer = LlamaTokenizer.from_pretrained(base_model)
+        config = LoraConfig(
+            r=lora_r,
+            lora_alpha=lora_alpha,
+            target_modules=lora_target_modules,
+            lora_dropout=lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        self.model = get_peft_model(self.model, config)
+        self.tokenizer = LlamaTokenizer.from_pretrained(base_model)
 
         self.tokenizer.pad_token_id = 0
         self.tokenizer.padding_side = "left" # Allow batched inference

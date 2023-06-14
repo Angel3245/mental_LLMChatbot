@@ -1,2 +1,2 @@
-from .model_training import LlamaPeftTrainer
-from .text_generation import LlamaPeftTextGenerator
+from .model_training_peft import LlamaPeftTrainer
+from .text_generation_peft import LlamaPeftTextGenerator

@@ -7,9 +7,7 @@ from ray import tune
 from peft import (
     prepare_model_for_int8_training,
     LoraConfig,
-    get_peft_model,
-    PeftModel,
-    PeftConfig
+    get_peft_model
 )
 
 import logging
@@ -22,58 +20,40 @@ logging.basicConfig(
 class BloomPeftTrainer:
     """ Class for finetuning BLOOM using Parameter Efficient Fine-tuning
 
-        :param model_path: path of the trained model in disk
         :param base_model: name of the base model
         :param cutoff_len: max length of sentences
         :param template: template file to use to create prompts
     """
-    def __init__(self, model_path=None, base_model=None, cutoff_len = 512, template = "mentalbot"):
+    def __init__(self, base_model=None, cutoff_len = 512, template = "mentalbot"):
         device_map = "auto"
 
         self.prompter = Prompter(template)
 
-        if not model_path == None:
-            # Load Peft model
-            print("Loading Peft model from disk")
-            config = PeftConfig.from_pretrained(model_path)
+        # Create Peft model from Bloom model
+        print("Creating Peft model from Bloom model")
+        self.model = BloomForCausalLM.from_pretrained(
+            base_model,
+            load_in_8bit=True,
+            torch_dtype=torch.float16,
+            device_map=device_map,
+        )
 
-            self.model = BloomForCausalLM.from_pretrained(
-                config.base_model_name_or_path,
-                load_in_8bit=True,
-                return_dict=True,
-                torch_dtype=torch.float16,
-                device_map={"":0},
-            )
+        self.model = prepare_model_for_int8_training(self.model)
 
-            self.model = PeftModel.from_pretrained(self.model, model_path, torch_dtype=torch.float16, device_map={"":0})
-            self.tokenizer = BloomTokenizerFast.from_pretrained(config.base_model_name_or_path)
-            
-        else:
-            # Create Peft model from Bloom model
-            print("Creating Peft model from Bloom model")
-            self.model = BloomForCausalLM.from_pretrained(
-                base_model,
-                load_in_8bit=True,
-                torch_dtype=torch.float16,
-                device_map=device_map,
-            )
+        # lora hyperparams
+        lora_r = 8
+        lora_alpha = 16
+        lora_dropout = 0.05
 
-            self.model = prepare_model_for_int8_training(self.model)
-
-            # lora hyperparams
-            lora_r = 8
-            lora_alpha = 16
-            lora_dropout = 0.05
-
-            config = LoraConfig(
-                r=lora_r,
-                lora_alpha=lora_alpha,
-                lora_dropout=lora_dropout,
-                bias="none",
-                task_type="CAUSAL_LM",
-            )
-            self.model = get_peft_model(self.model, config)
-            self.tokenizer = BloomTokenizerFast.from_pretrained(base_model)
+        config = LoraConfig(
+            r=lora_r,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        self.model = get_peft_model(self.model, config)
+        self.tokenizer = BloomTokenizerFast.from_pretrained(base_model)
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
