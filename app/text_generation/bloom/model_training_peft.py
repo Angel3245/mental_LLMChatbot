@@ -106,7 +106,7 @@ class BloomPeftTrainer:
         return result
  
     def generate_and_tokenize_prompt(self,data_point):
-        full_prompt = self.prompter.generate_prompt(data_point["prompt"],None,data_point["completion"])
+        full_prompt = self.prompter.generate_prompt(data_point["prompt"],data_point["completion"])
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
 

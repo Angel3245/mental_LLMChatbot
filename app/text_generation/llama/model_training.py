@@ -2,6 +2,7 @@ import torch
 import os, sys
 from transformers import Trainer, TrainingArguments, GenerationConfig, LlamaForCausalLM, LlamaTokenizer, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
+from ray import tune
 
 from peft import (
     prepare_model_for_int8_training,
@@ -32,7 +33,7 @@ class LlamaPeftTrainer:
 
         if not model_path == None:
             # Load Peft model
-            print("Loading Peft model from disk")
+            print("Loading Peft weights from disk")
             config = PeftConfig.from_pretrained(model_path)
 
             self.model = LlamaForCausalLM.from_pretrained(
@@ -228,10 +229,18 @@ class LlamaPeftTrainer:
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
             
+        def my_hp_space(trial):
+            return {
+                "learning_rate": tune.loguniform(1e-6, 1e-3),
+                "num_train_epochs": tune.choice([1, 2, 3]),
+                "per_device_train_batch_size": tune.choice([2, 4, 8])
+            }
+        
         trainer.hyperparameter_search(
             direction="minimize", 
             backend="ray", 
-            n_trials=10 # number of trials
+            n_trials=10, # number of trials
+            hp_space=my_hp_space
         )
 
     def generate_response(self, input_text, max_new_tokens=256, temperature=0.9, top_p=0.9, repetition_penalty=1.1):

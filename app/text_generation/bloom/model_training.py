@@ -75,7 +75,7 @@ class BloomTrainer:
  
     def generate_and_tokenize_prompt(self,data_point):
         # Set prompt
-        full_prompt = self.prompter.generate_prompt(data_point["prompt"],None,data_point["completion"])
+        full_prompt = self.prompter.generate_prompt(data_point["prompt"],data_point["completion"])
         tokenized_full_prompt = self.tokenize(full_prompt)
         return tokenized_full_prompt
     
@@ -169,12 +169,20 @@ class BloomTrainer:
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
                 
+        def my_hp_space(trial):
+            return {
+                "learning_rate": tune.loguniform(1e-6, 1e-3),
+                "num_train_epochs": tune.choice([1, 2, 3]),
+                "per_device_train_batch_size": tune.choice([2, 4, 8])
+            }
+        
         # Default objective is the sum of all metrics
         # when metrics are provided, so we have to maximize it.
         trainer.hyperparameter_search(
             direction="minimize", 
             backend="ray", 
-            n_trials=10 # number of trials
+            n_trials=10, # number of trials
+            hp_space=my_hp_space
         )
 
     def generate_response(self, input_text, max_length=1000, top_p=0.9):
