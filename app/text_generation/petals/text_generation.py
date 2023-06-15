@@ -3,7 +3,7 @@ from transformers import GenerationConfig, BloomTokenizerFast
 
 from petals import DistributedBloomForCausalLM
 
-class PetalsChatbot:
+class PetalsTextGenerator:
     def __init__(self, model_path, model_name="bigscience/bloom-petals", template="alpaca"):
         self.model_path = model_path
 

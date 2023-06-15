@@ -5,6 +5,7 @@ pandas==2.0.0
 petals==1.1.5
 peft==0.3.0
 praw==7.6.1
+pymysql==1.0.3
 ray==2.4.0
 redditcleaner==1.1.2
 rouge_score==0.1.2

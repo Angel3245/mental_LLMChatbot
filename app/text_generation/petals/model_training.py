@@ -124,8 +124,7 @@ class PetalsTrainer:
         )
 
         # training hyperparams
-        full_batch_size = 128
-        gradient_accumulation_steps = full_batch_size // batch_size
+        gradient_accumulation_steps = 4
         
         training_args = TrainingArguments(
             output_dir=output_dir,          # output directory
@@ -165,11 +164,6 @@ class PetalsTrainer:
 
         self.model.config.use_cache = False
 
-        old_state_dict = self.model.state_dict
-        self.model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(self.model, type(self.model))
-
         if torch.__version__ >= "2" and sys.platform != "win32":
             self.model = torch.compile(self.model)
 
@@ -183,46 +177,6 @@ class PetalsTrainer:
         # Save the model and tokenizer
         self.model.save_pretrained(output_dir)
         self.tokenizer.save_pretrained(output_dir)
-
-    def evaluation(self, test_inputs, output_path, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=4, repetition_penalty=1.1):
-
-        self.model = self.model.eval()
-
-        for input_text in test_inputs:
-            # Set prompt
-            prompt = self.prompter.generate_prompt(input_text)
-
-            input_encodings = self.tokenizer(prompt, return_tensors='pt')
-            input_ids = input_encodings['input_ids'].to(self.model.device)
-
-            generation_config = GenerationConfig(
-                temperature=temperature,
-                top_p=top_p,
-                #top_k=top_k,
-                #num_beams=num_beams,
-                repetition_penalty=repetition_penalty
-            )
-            
-            with torch.inference_mode():
-                # Use model.generate() to generate the response
-                response = self.model.generate(
-                    input_ids=input_ids,
-                    generation_config=generation_config,
-                    return_dict_in_generate=True,
-                    output_scores=True,
-                    max_new_tokens=max_new_tokens,
-                )
-
-            # Decode the response from the model back into text
-            decoded_output = self.tokenizer.decode(response.sequences[0])
-            response = self.prompter.get_response(decoded_output)
-
-            # Create CSV with evaluation results
-            make_dirs(output_path)
-            with open(output_path+"/evaluation.csv", 'a', encoding="UTF8") as csv_file:
-                writer = csv.writer(csv_file, delimiter=",")
-                writer.writerow(["Input","Response"])
-                writer.writerow([input_text,response])
     
     def generate_response(self, input_text, max_new_tokens=256, temperature=0.1, top_p=0.9, top_k=40, num_beams=1, repetition_penalty=1.1):
 

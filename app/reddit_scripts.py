@@ -7,10 +7,10 @@ from model import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Reddit scripts',
-                    description='Get and convert data from Reddit',
+                    description='Get and convert data from Reddit. Requires a MySQL database',
                     epilog='Jose Angel Perez Garrido - 2023')
 
-    parser.add_argument("-o", "--option", type=str, help="select an option: extraction_search_by_flair -> get data from Reddit searching by flair; refresh_token -> get refresh token; create_reddit_csv -> create csv datasets from Reddit data in DB")
+    parser.add_argument("-o", "--option", type=str, help="select an option: extraction_search_by_flair -> get data from Reddit searching by flair; refresh_token -> get refresh token; create_reddit_csv -> create csv datasets from Reddit data in DB", required=True)
     parser.add_argument("-s", "--subreddit", type=str, help="name of subreddit")
     parser.add_argument("-d", "--database", type=str, help="name of database")
     parser.add_argument("-f", "--flairs", type=str, help="flairs to search separated by commas")
@@ -20,8 +20,8 @@ if __name__ == '__main__':
 
     # Search by flair in Reddit subreddits
     if args.option == "extraction_search_by_flair":
-        # python app\reddit_scripts.py -o extraction_search_by_flair -s Anxiety -d reddit
-        flairs = [str(item) for item in args.flair.split(',')]
+        # python app\reddit_scripts.py -o extraction_search_by_flair -s Anxiety -d reddit -f support
+        flairs = [str(item) for item in args.flairs.split(',')]
 
         session = database_connect(args.database)
         extract_data(session, args.subreddit, "search_by_flair", flairs)

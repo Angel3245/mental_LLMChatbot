@@ -1,2 +1,2 @@
 from .model_training import PetalsTrainer
-from .text_generation import PetalsChatbot
+from .text_generation import PetalsTextGenerator
