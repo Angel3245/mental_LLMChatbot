@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     # Search by flair in Reddit subreddits
     if args.option == "extraction_search_by_flair":
-        # python app\reddit_scripts.py -o extraction_search_by_flair -s Anxiety -d reddit -f support
+        # python app\reddit_scripts.py -o extraction_search_by_flair -s Anxiety -d reddit -f "Advice Needed","Needs a Hug/Support"
         flairs = [str(item) for item in args.flairs.split(',')]
 
         session = database_connect(args.database)
