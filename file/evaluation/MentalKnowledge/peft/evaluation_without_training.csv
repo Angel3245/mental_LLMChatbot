@@ -1,7 +1,0 @@
-Input,Response,Bleu-1,Rouge-1
-"My final exam is near, but my mental health is getting worse. Any advice?","I would recommend you to take a break from your studies and focus on your mental health. You can do this by taking a walk in nature or going for a swim. I also suggest you to talk to someone about how you feel. This could be a friend, family member, teacher, or counselor. If you are feeling suicidal, please call 1-800-273-TALK (8255) or text HOME to 741741.",0.6,0.22
-Who does mental illness affect?,Mental illness affects people of all ages and backgrounds. It can be caused by genetics or environmental factors such as trauma. Mental illness can also be triggered by stressful life events like losing a job or having a child.,0.55,0.18
-What treatment options are available?,Treatment options include medication and psychotherapy.,0.43,0.09
-Where can I go to find a support group?,"You can go to your local hospital or community center and ask for information about support groups in your area. You may also be able to find them online by searching for ""mental health support groups"" on Google.",0.38,0.33
-What is mental health?,Mental health is the ability to cope with stress and other challenges in life.,0.27,0.27
-What should I do if I am worried about a friend or relative?,You should encourage them to seek help from a professional.,0.36,0.19
