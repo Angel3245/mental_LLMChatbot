@@ -178,7 +178,7 @@ class LlamaPeftTrainer:
         group_by_length = True  # faster, but produces an odd training loss curve
         
         training_args = TrainingArguments(
-            "test",
+            output_dir='./logs',            # directory for storing output
             warmup_steps=10,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs

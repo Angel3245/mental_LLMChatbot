@@ -134,6 +134,7 @@ class GPT2Trainer:
         train_dataset, val_dataset = self.split_train_val_sets(dataset)
         
         training_args = TrainingArguments(
+            output_dir='./logs',            # directory for storing output
             warmup_steps=10,       # number of warmup steps for learning rate scheduler
             #weight_decay=0.01,              # strength of weight decay
             logging_dir='./logs',            # directory for storing logs

@@ -1,5 +1,5 @@
 import torch
-import os, sys, copy
+import os, sys
 from transformers import Trainer, TrainingArguments, GenerationConfig, BloomTokenizerFast, BloomForCausalLM, DataCollatorForSeq2Seq
 from shared.prompter import Prompter
 from ray import tune
@@ -190,7 +190,7 @@ class BloomPeftTrainer:
         )
         
         def model_init():
-            return copy.deepcopy(self.model)
+            return self.model
         
         trainer = Trainer(
             model_init=model_init,
