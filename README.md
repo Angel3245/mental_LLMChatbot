@@ -98,13 +98,13 @@ Los scripts disponibles según el tipo de usuario son los seguintes:
 
     - Crear una base de datos MySQL de nombre ```reddit``` e importar el archivo de base de datos disponible en ```/file/reddit/reddit.sql```
 
-    - Crear un usuario de nome redditUser e con contrasinal redditPass con acceso a 
+    - Crear un usuario de nombre redditUser y con contraseña redditPass con acceso a 
     esta base de datos
     ```
     GRANT ALL PRIVILEGES ON reddit.* TO redditUser@localhost IDENTIFIED BY redditPass;
     ```
 
-    - Crear e cubrir os datos do arquivo ```/file/reddit/client_secrets.json``` seguindo o 
+    - Crear y cubrir los datos del archivo ```/file/reddit/client_secrets.json``` siguiendo el 
     modelo de ```/file/reddit/client_secrets_example.json```. ([Más información](https://praw.readthedocs.io/en/stable/getting_started/authentication.html#passwor))
 
     - Obtener el valor de refresh_token con el siguiente script y añadirlo a ```/file/reddit/client_secrets.json```:
