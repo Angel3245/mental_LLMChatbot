@@ -92,33 +92,34 @@ Los scripts disponibles según el tipo de usuario son los seguintes:
 * ```training.py```: contiene la lógica para entrenar los modelos puntuadores.
 
 # Pasos seguidos para la creación y evaluación de un bot conversacional
-1. Obtener datos de fuentes externas (Reddit) mediante ```reddit_scripts.py``` (ya creado en _/file/datasets_).
 
-**Para poder ejecutar el script se necesitan realizar unos pasos previos de configuración descritos a continuación:**
+Para la creación de un bot conversacional pueden tomarse los siguientes pasos como guía general.
 
-    - Crear una base de datos MySQL de nombre ```reddit``` e importar el archivo de base de datos disponible en ```/file/reddit/reddit.sql```
+1. Obtener datos de fuentes externas (Reddit) mediante ```reddit_scripts.py``` (ya creado en _/file/datasets_). **NOTA: Para poder ejecutar el script se necesitan realizar unos pasos previos de configuración descritos a continuación:**
 
-    - Crear un usuario de nombre redditUser y con contraseña redditPass con acceso a 
+    1. Crear una base de datos MySQL de nombre ```reddit``` e importar el archivo de base de datos disponible en ```/file/reddit/reddit.sql```
+
+    2. Crear un usuario de nombre redditUser y con contraseña redditPass con acceso a 
     esta base de datos
     ```
     GRANT ALL PRIVILEGES ON reddit.* TO redditUser@localhost IDENTIFIED BY redditPass;
     ```
 
-    - Crear y cubrir los datos del archivo ```/file/reddit/client_secrets.json``` siguiendo el 
+    3. Crear y cubrir los datos del archivo ```/file/reddit/client_secrets.json``` siguiendo el 
     modelo de ```/file/reddit/client_secrets_example.json```. ([Más información](https://praw.readthedocs.io/en/stable/getting_started/authentication.html#passwor))
 
-    - Obtener el valor de refresh_token con el siguiente script y añadirlo a ```/file/reddit/client_secrets.json```:
+    4. Obtener el valor de refresh_token con el siguiente script y añadirlo a ```/file/reddit/client_secrets.json```:
     ```
     python app/reddit_scripts.py -o refresh_token
     ```
 
-Una vez esté configurado el modulo ya es posible descargar información de Reddit. Por ejemplo, para descargar publicaciones del subreddit ```r/Anxiety``` que contengan alguno de los siguientes flairs ```["Advice Needed","Needs a Hug/Support"]``` el comando sería el siguiente:
+Una vez esté configurado el modulo ya es posible acceder y descargar información de la API de Reddit. Por ejemplo, para descargar publicaciones del subreddit ```r/Anxiety``` que contengan alguno de los siguientes flairs ```["Advice Needed","Needs a Hug/Support"]``` el comando sería el siguiente:
 ```
 python app\reddit_scripts.py -o extraction_search_by_flair -s Anxiety -d reddit -f "Advice Needed","Needs a Hug/Support"
 ```
 
 
-2. Crear el corpus (MentalKnowledge) parseando los conjuntos de datos obtenidos de fuentes externas mediante ```prepare_dataset.py``` (ya creado en _/file/data_)
+2. Crear el corpus (MentalKnowledge) procesando los conjuntos de datos obtenidos de fuentes externas mediante ```prepare_dataset.py``` (ya creado en _/file/data_)
 
 ```
 python app/prepare_dataset.py -o parsing_text_generation -d MentalKnowledge
@@ -135,10 +136,16 @@ python app/training.py -o hyperparameter_search -m gpt2
 python app/training.py -o finetune_model -m gpt2
 ```
 
-4. Generar los resultados con los casos de prueba, calcular las métricas y guardar la información en un archivo CSV mediante ```evaluate.py```
+4. Generar los resultados con los casos de prueba (```/file/test/test_inputs.json```), calcular las métricas y guardar la información en un archivo CSV mediante ```evaluate.py```
 
 ```
 python app/evaluation.py -o evaluate -m gpt2
+```
+
+5. Seleccionar el modelo entrenado cuyos resultados satisfagan los requisitos del proyecto y guardar los pesos en la carpeta ```/file/chatbot_model``` para ser cargados por el bot conversacional. A continuación ya es posible ejecutar el bot conversacional mediante el siguiente comando:
+
+```
+python app/chatbot.py -o cli
 ```
 
 # Estructura del proyecto
@@ -164,3 +171,8 @@ El proyecto se organiza de la siguinte manera:
     *	_/templates_: contiene los modelos de instrucción empleados para la creación de las instancias de instrución.
     *	_/test_: contiene los casos de prueba para la evaluación de los modelos.
 *	_/output_: directorio donde se almacenan los modelos puntuadores entrenados mediante la aplicación junto con los resultados de su evaluación.
+
+# Referencias
+```
+Mental Health FAQ for Chatbot. (2020, 2 octubre). Kaggle. https://www.kaggle.com/datasets/narendrageek/mental-health-faq-for-chatbot
+```
