@@ -1,4 +1,4 @@
-Aplicación de técnicas de aprendizaje profundo al desarrollo de un bot conversacional para contribuír a la mejora de la salud mental
+Aplicación de técnicas de aprendizaje profundo al desarrollo de un bot conversacional para contribuír a la mejora de la salud mental [![license](https://img.shields.io/badge/LICENSE-AGPL--3.0-ff69b4)]() 
 =======
 
 Proyecto desarrollado durante el Trabajo de Fin de Grado (TFG) en el [Grado en Ingeniería Informática](https://esei.uvigo.es/es/estudos/grao-en-enxenaria-informatica/) de la Universidad de Vigo por el alumno Jose Ángel Pérez Garrido y tutorizado por Dra. Anália Maria Garcia Lourenço en el curso académico 2022-2023. 
@@ -10,6 +10,7 @@ Esta aplicación proporciona las herramientas necesarias para la creación y eva
 1. **S.O.** Windows 10/Ubuntu 20.04 o superiores
 2. **Intérprete Python 3.** Probado en la versión [3.9](https://www.python.org/downloads/release/python-390/).
 3. **Base de Datos MySQL.** Probado en la versión [10.4.25-MariaDB](https://mariadb.com/kb/en/mariadb-10425-release-notes/).
+4. **GPU** compatible con CUDA 1.17 
 
 
 # Instalación del entorno
