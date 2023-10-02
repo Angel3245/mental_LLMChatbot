@@ -16,6 +16,13 @@
 from parsers import MentalFAQ_Parser, Reddit_Parser
 
 def create_dataset(file_path, posts_path, comments_path):
+    """
+    The function creates a dataset by combining data from separate files.
+    
+    :param file_path: The path to the file containing the Mental_Health_FAQ.csv.
+    :param posts_path: The path to the file containing the Reddit posts data
+    :param comments_path: The path to the file containing the Reddit comments data
+    """
     # create instance of MentalFAQ_Parser and generate query_answer_pairs
     mentalfaq_parser = MentalFAQ_Parser(file_path)
     print("Loaded",len(mentalfaq_parser.faq_pairs),"rows from Mental_Health_FAQ.csv")

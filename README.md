@@ -3,7 +3,7 @@ Aplicación de técnicas de aprendizaje profundo al desarrollo de un bot convers
 
 Proyecto desarrollado durante el Trabajo de Fin de Grado (TFG) en el [Grado en Ingeniería Informática](https://esei.uvigo.es/es/estudos/grao-en-enxenaria-informatica/) de la Universidad de Vigo por el alumno Jose Ángel Pérez Garrido y tutorizado por Dra. Anália Maria Garcia Lourenço en el curso académico 2022-2023. 
 
-Esta aplicación proporciona las herramientas necesarias para la creación y evaluación de un bot conversacional mediante modelos LLM.
+Esta aplicación proporciona las herramientas necesarias para la creación y evaluación de un bot conversacional mediante modelos LLM. Incluye un corpus compuesto por datos pertenecientes al ámbito de la salud mental.
 
 
 # Requisitos
@@ -44,7 +44,7 @@ pip install –r requirements.txt
 
 1. Desplazarse hasta el directorio del proyecto
 ```
-cd <ruta_do_proxecto>
+cd <ruta_del_proyecto>
 ```
 
 2. Crear la imagen Docker a partir del archivo Dockerfile (de nombre ```mentalbot```)
@@ -90,7 +90,7 @@ Los scripts disponibles según el tipo de usuario son los seguintes:
 * ```prepare_dataset.py```: contiene la lógica necesaria para realizar la limpieza, transformación, construcción y adaptación de los datos para el caso de uso.
 * ```reddit_scripts.py```: contiene la lógica necesaria para extraer datos de Reddit.
 * ```test_cuda.py```: contiene la lógica para la comprobación de que CUDA está disponible y configurado correctamente en el equipo.
-* ```training.py```: contiene la lógica para entrenar los modelos puntuadores.
+* ```training.py```: contiene la lógica para entrenar los modelos LLM.
 
 # Pasos seguidos para la creación y evaluación de un bot conversacional
 
@@ -164,14 +164,14 @@ El proyecto se organiza de la siguinte manera:
     *	_/transformation_: contiene las funciones necesarias para preparar los conjuntos de datos.
     *	_/view_: contiene las funciones relacionadas con la vista que se presenta al usuario de la aplicación.
 *	_/file_: directorio que almacena información requerida para la ejecución de la aplicación organizada en diferentes subdirectorios:
-    *	_/chatbot_model_: directorio que almacena los pesos del modelo puntuador (SBERT) seleccionado para el bot conversacional.
+    *	_/chatbot_model_: directorio que almacena los pesos del modelo LLM seleccionado para el bot conversacional.
     *	_/data_: contiene los conjuntos de datos preparados mediante la aplicación.
     *	_/datasets_: contiene los conjuntos de datos extraídos de diferentes fuentes de datos.
     *	_/evaluation_: contiene los resultados de la evaluación de los diferentes modelos entrenados.
     *	_/reddit_: contiene la información requerida para configurar y emplear el módulo de extracción da información de Reddit.
     *	_/templates_: contiene los modelos de instrucción empleados para la creación de las instancias de instrución.
     *	_/test_: contiene los casos de prueba para la evaluación de los modelos.
-*	_/output_: directorio donde se almacenan los modelos puntuadores entrenados mediante la aplicación junto con los resultados de su evaluación.
+*	_/output_: directorio donde se almacenan los modelos LLM entrenados mediante la aplicación junto con los resultados de su evaluación.
 
 # Referencias
 ```

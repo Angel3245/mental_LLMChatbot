@@ -28,7 +28,7 @@ from datasets import load_dataset
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog='Training',
-                    description='Train a pretrained model',
+                    description='Train a pretrained model. Source code: https://github.com/Angel3245/textgenerationbot',
                     epilog='Jose Angel Perez Garrido - 2023')
     parser.add_argument("-o", "--option", type=str, help="select an option: finetune_model -> Train a language model using a Trainer; hyperparameter_search -> Search best hyperparameters using Ray Tune", required=True)
     parser.add_argument("-m", "--model", type=str, help="select a pretrained model to load. Supported models: "+str(ModelDispatcher.get_supported_types()), required=True)

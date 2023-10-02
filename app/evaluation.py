@@ -30,7 +30,7 @@ from datasets import load_dataset
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog='Evaluation',
-                    description='Evaluate the results of a LLM',
+                    description='Evaluate the results of a LLM. Source code: https://github.com/Angel3245/textgenerationbot',
                     epilog='Jose Angel Perez Garrido - 2023')
     parser.add_argument("-o", "--option", type=str, help="select an option: evaluate -> test LLM using a test dataset; ask -> test LLM asking questions", required=True)
     parser.add_argument("-m", "--model", type=str, help="select a pretrained model to load. Supported models: "+str(ModelDispatcher.get_supported_types())+" (default: gpt2)", default='gpt2')

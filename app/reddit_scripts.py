@@ -22,7 +22,7 @@ from model import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Reddit scripts',
-                    description='Get and convert data from Reddit. Requires a MySQL database',
+                    description='Get and convert data from Reddit. Requires a MySQL database. Source code: https://github.com/Angel3245/textgenerationbot',
                     epilog='Jose Angel Perez Garrido - 2023')
 
     parser.add_argument("-o", "--option", type=str, help="select an option: extraction_search_by_flair -> get data from Reddit searching by flair; refresh_token -> get refresh token; create_reddit_csv -> create csv datasets from Reddit data in DB", required=True)

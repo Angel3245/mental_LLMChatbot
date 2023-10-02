@@ -27,7 +27,7 @@ logging.disable(logging.ERROR)
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog='Chatbot',
-                    description='Run a chatbot using a LLM',
+                    description='Run a chatbot using a LLM. Source code: https://github.com/Angel3245/textgenerationbot',
                     epilog='Jose Angel Perez Garrido - 2023')
     parser.add_argument("-o", "--option", type=str, help="select an option: cli -> run a chatbot in command line view. (default: cli)", default="cli")
     #parser.add_argument("-m", "--model", type=str, help="select a pretrained model to load. Supported models: "+str(ModelDispatcher.get_supported_types())+" (default: gpt2)", default='gpt2')

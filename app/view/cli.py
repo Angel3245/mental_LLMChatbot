@@ -16,6 +16,12 @@
 from clean_data import clean
 
 def ask_chatbot(text_generator):
+    """
+    Ask the user for an input, clean and check the input sentence and passes it to the text_generator to create an answer.
+    It uses the command-line to communicate with the user.
+    
+    :param text_generator: Model used to generate the answer
+    """
     while True:
         user_input = input("User: ")
         if user_input.lower() == 'exit':

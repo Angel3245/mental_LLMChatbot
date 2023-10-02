@@ -21,7 +21,7 @@ from transformation import create_dataset
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog='Prepare dataset',
-                    description='Create a dataset for model training',
+                    description='Create a dataset for model training. Source code: https://github.com/Angel3245/textgenerationbot',
                     epilog='Jose Angel Perez Garrido - 2023')
     parser.add_argument("-o", "--option", type=str, help="select an option: parsing_text_generation -> Parse a dataset for text generation", default="parsing_text_generation")
     parser.add_argument("-d", "--dataset", type=str, help="select a dataset name (default: MentalKnowledge)", default="MentalKnowledge")
