@@ -48,12 +48,17 @@ class Prompter(object):
         self,
         input: Union[None, str] = None,
         label: Union[None, str] = None,
+        target: Union[None, str] = None,
     ) -> str:
         # returns the full prompt from instruction and optional input
         # if a label (=response, =output) is provided, it's also appended.
         if input:
             res = self.template["prompt"].format(
                 input=input
+            )
+        if target:
+            res = self.template["prompt"].format(
+                output=target
             )
         if label:
             res = f"{res}{label}"

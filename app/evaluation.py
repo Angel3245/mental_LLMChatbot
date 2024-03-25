@@ -15,6 +15,7 @@
 
 import argparse
 import sys, csv, evaluate
+import pandas as pd
 from pathlib import Path
 from shared import *
 from text_generation.model_classes import ModelDispatcher
@@ -22,6 +23,8 @@ from text_generation.gpt3 import GPT3TextGenerator
 from text_generation.gpt2 import GPT2TextGenerator
 from text_generation.bloom import BloomTextGenerator, BloomPeftTextGenerator
 from text_generation.llama import LlamaPeftTextGenerator
+from semantic_similarity.sbert import evaluate_similarity
+
 if sys.platform != "win32":
     from text_generation.petals import PetalsTextGenerator
 
@@ -48,9 +51,98 @@ if __name__ == "__main__":
         "llama": LlamaPeftTextGenerator
     }
 
-    # Create CSV with results from test cases
-    if args.option == "evaluate":
-        # python app\evaluation.py -o evaluate -m gpt2
+    if args.option == "generate_test_output":
+        # python app\evaluation.py -o generate_test_output -m gpt2
+
+        # Get model_type from dispatcher
+        model_name = args.model
+        model_type = ModelDispatcher.get_model_type(model_name)
+
+        test_filepath = F"{str(path)}/file/test/test_inputs.json"
+        output_path = F"{str(path)}/file/evaluation/"+args.dataset+"/"+model_type+"_"+model_name
+
+        # Load test dataset
+        dataset = load_dataset("json", data_files=test_filepath)
+        test_inputs = dataset["train"]
+        print("Test dataset:",test_inputs)
+
+        #dataset = random.sample(list(dataset), 30)
+
+        # Get model text_generator class from type
+        text_generator = text_generators[model_type](model_name)
+
+        # Create CSV with model output for test cases
+        make_dirs(output_path)
+        with open(output_path+"/model_output.csv", 'w', encoding="UTF8") as csv_file:
+            writer = csv.writer(csv_file, delimiter=",")
+            writer.writerow(["Input","Output","Output_expected"])
+
+        for input_text in test_inputs:
+            response = text_generator.generate_response(input_text["input"])
+
+            with open(output_path+"/model_output.csv", 'a', encoding="UTF8") as csv_file:
+                writer = csv.writer(csv_file, delimiter=",")
+                writer.writerow([input_text["input"],response, input_text["output_expected"]])
+
+        print("Evaluation results dumped to",output_path)
+
+    # Evaluate semantic similarity using SBERT
+    if args.option == "evaluate_semantic_similarity":
+        # python app\evaluation.py -o evaluate_semantic_similarity -m gpt2
+        # Get model_type from dispatcher
+        model_name = args.model
+        model_type = ModelDispatcher.get_model_type(model_name)
+
+        output_path = F"{str(path)}/file/evaluation/"+args.dataset+"/"+model_type+"_"+model_name
+        model_outputs_filepath = output_path+"/model_output.csv"
+
+        # Load model outputs
+        df = pd.read_csv(model_outputs_filepath)
+        outputs = df.Output
+        targets = df.Output_expected
+
+        # Compute cosine similarity
+        cosine_scores = evaluate_similarity(outputs,input_text["output_expected"])
+
+        # Write the cosine similarity to a CSV file
+        with open(output_path+'/cos_similarity.csv', mode='w', encoding="UTF8") as file:
+            writer = csv.writer(file)
+            writer.writerows([cosine_scores.tolist()])
+
+    # Evaluate correctness of responses using a LLM
+    if args.option == "evaluate_llm-eval":
+        # python app\evaluation.py -o evaluate_llm-eval -m gpt2
+
+        # Get model_type from dispatcher
+        model_name = args.model
+        model_type = ModelDispatcher.get_model_type(model_name)
+
+        output_path = F"{str(path)}/file/evaluation/"+args.dataset+"/"+model_type+"_"+model_name
+        model_outputs_filepath = output_path+"/model_output.csv"
+
+        # Load model outputs
+        df = pd.read_csv(model_outputs_filepath)
+        outputs = df.Output
+        targets = df.Output_expected
+
+        # Get model text_generator class from type using llm-eval template
+        text_generator = text_generators[model_type](model_name, template="llm-eval")
+
+        # Write the LLM evaluation to a CSV file
+        with open(output_path+"/llm-eval.csv", 'w', encoding="UTF8") as csv_file:
+            writer = csv.writer(csv_file, delimiter=",")
+            writer.writerow(["Evaluation"])
+
+        for output,target in zip(outputs,targets):
+            response = text_generator.generate_response(output,output=target)
+
+            with open(output_path+"/llm-eval.csv", 'a', encoding="UTF8") as csv_file:
+                writer = csv.writer(csv_file, delimiter=",")
+                writer.writerow([response])
+    
+    # Evaluate answers using automatic metrics and create a CSV with results from test cases
+    if args.option == "evaluate_metrics":
+        # python app\evaluation.py -o evaluate_metrics -m gpt2
 
         # Get model_type from dispatcher
         model_name = args.model
